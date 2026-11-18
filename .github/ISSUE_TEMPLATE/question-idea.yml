@@ -1,0 +1,23 @@
+name: Question or idea
+description: Something in the README or the guides is unclear, or you have a suggestion.
+title: "Question: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project is a small template, not a product. Ideas that keep it small and readable have the best chance. New features are added only if someone cannot use the template without them.
+  - type: textarea
+    id: frage
+    attributes:
+      label: Question or idea
+      description: If something did not work, name the command you ran and the place in the README, `docs/walkthrough.md` or `docs/adapt.md` you followed.
+    validations:
+      required: true
+  - type: textarea
+    id: vorhaben
+    attributes:
+      label: What you are trying to do
+      description: For example, the process you want to adapt the pattern to. Do not include confidential or personal data.
+    validations:
+      required: false

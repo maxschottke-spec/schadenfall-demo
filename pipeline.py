@@ -511,8 +511,9 @@ def modell_erlaubt(datei):
     """Ohne ausdrückliche Erlaubnis wird nie ein Modell aufgerufen, nur weil eine Datei in lauf/ fehlt."""
     if "--neu" in sys.argv or "--modell-erlaubt" in sys.argv:
         return
-    sys.exit(f"{datei.name} fehlt in lauf/. Ohne Modell: Datei von Hand anlegen (README, Abschnitt "
-             "„Eigener Fall ohne Modellaufruf“). Mit Modell: --neu (alle Fälle) oder --modell-erlaubt (nur fehlende).")
+    sys.exit(f"{datei.name} fehlt in lauf/. Ohne Modell: Datei von Hand anlegen (README.de.md, Abschnitt "
+             "„Eigener Fall ohne Modellaufruf“; README.md, section \"Your own case without a model call\"). "
+             "Mit Modell: --neu (alle Fälle) oder --modell-erlaubt (nur fehlende).")
 
 
 def lies(fall: dict, neu: bool) -> dict:
@@ -561,12 +562,12 @@ def messe(fall: dict, x: dict, erg: dict) -> dict:
     felder = {}
     for soll_name, ist_name in FELDER:
         soll, ist = g[soll_name], x.get(ist_name)
-        if isinstance(soll, float):
-            ok = ist is not None and abs(float(ist) - soll) < 0.005
+        if isinstance(soll, (int, float)) and not isinstance(soll, bool):   # auch 249 statt 249.0 im Soll
+            ok = in_cent(ist) is not None and abs(float(ist) - soll) < 0.005
         else:
             ok = norm(str(soll)) == norm(str(ist)) if soll is not None else ist in (None, "")
         felder[soll_name] = {"soll": soll, "ist": ist, "ok": ok}
-    ent_ok = (erg["entscheidung"] == g["entscheidung"] and erg["gruende"] == g["gruende"]
+    ent_ok = (erg["entscheidung"] == g["entscheidung"] and erg["gruende"] == sorted(g["gruende"])
               and erg["paragraf"] == g["paragraf"]
               and (g["betrag"] is None and erg["betrag"] is None
                    or g["betrag"] is not None and erg["betrag"] is not None and abs(erg["betrag"] - g["betrag"]) < 0.005))
@@ -598,7 +599,7 @@ def main():
     faelle = json.loads((HIER / "faelle.json").read_text(encoding="utf-8"))
     for f in faelle:
         if "gold" not in f:
-            sys.exit(f"Fall {f.get('id')}: Das Soll unter 'gold' fehlt (README, Abschnitt „Fälle und Sollwerte“).")
+            sys.exit(f"Fall {f.get('id')}: Das Soll unter 'gold' fehlt (README.de.md, Abschnitt „Fälle und Sollwerte“; README.md, section \"Cases and expected values\").")
     with ThreadPoolExecutor(4) as ex:
         gelesen = list(ex.map(lambda f: lies(f, neu), faelle))
     gesehen, ergebnisse = {}, {}
