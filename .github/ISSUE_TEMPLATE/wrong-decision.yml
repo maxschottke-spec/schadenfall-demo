@@ -1,0 +1,78 @@
+name: Path to a wrong decision
+description: A case that is paid out, rejected or handed to a human although it should not be.
+title: "Wrong decision: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. The most valuable report is a case that is paid out automatically (`auszahlen`) although the terms in `bedingungen.md` do not allow it.
+
+        Use invented data only: no real names, contract numbers, serial numbers or documents.
+        If document text triggers a model or tool call, or runs as script on the results page, read `SECURITY.md` first and do not post the details here.
+  - type: textarea
+    id: fall
+    attributes:
+      label: Case
+      description: The entry for `faelle.json` (contract data, `eingang`, `meldung`, `beleg`, and `gold` with the values you expect). Or the id of an existing case and what you changed in it.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: gelesen
+    attributes:
+      label: Model answer (the filled-in form)
+      description: The content of `lauf/<id>_gelesen.json`. Say whether you wrote it by hand or a model produced it, and if so which model.
+      render: json
+    validations:
+      required: true
+  - type: dropdown
+    id: erwartet
+    attributes:
+      label: Expected decision
+      options:
+        - auszahlen (pay out automatically)
+        - ablehnen (propose a rejection)
+        - an_mensch (hand over to a human)
+    validations:
+      required: true
+  - type: dropdown
+    id: tatsaechlich
+    attributes:
+      label: Actual decision
+      options:
+        - auszahlen (pay out automatically)
+        - ablehnen (propose a rejection)
+        - an_mensch (hand over to a human)
+        - the run stopped with an error
+    validations:
+      required: true
+  - type: textarea
+    id: ausgabe
+    attributes:
+      label: Output
+      description: The part "Checked by code" and "Decision" from `python3 beispiel.py <id> --en`, or the error message.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: warum
+    attributes:
+      label: Why the expected decision is the right one
+      description: The section of `bedingungen.md` or the safeguard from the README that should have applied.
+    validations:
+      required: true
+  - type: input
+    id: stand
+    attributes:
+      label: Commit and Python version
+      description: Output of `git rev-parse --short HEAD` and `python3 --version`.
+    validations:
+      required: false
+  - type: checkboxes
+    id: erfunden
+    attributes:
+      label: Invented data
+      options:
+        - label: Everything in this report is invented. It contains no data of real persons, contracts or devices.
+          required: true

@@ -4,9 +4,15 @@
 
 Deutsch · [English](README.md)
 
-Eine kleine Vorführstrecke: Ein Geräteschaden läuft vom Posteingang bis zum Entscheidungsvorschlag.
+Eine kleine, lauffähige Vorlage für eine Art, ein Sprachmodell in einen Entscheidungsvorgang einzubauen: **Das Modell liest, fester Code entscheidet, ein Mensch gibt frei.** Das durchgearbeitete Beispiel ist ein Geräteschaden, der vom Posteingang bis zum Entscheidungsvorschlag läuft.
 
-Alle Fälle, Namen und Bedingungen sind erfunden.
+- **Ansehen:** 16 erfundene Fälle, gespeicherte Modellantworten und eine Ergebnisseite. Alles läuft ohne Netz, ohne Schlüssel, ohne Modellaufruf und ohne Installation.
+- **Nachprüfen:** Tests gegen ein von Hand festgelegtes Soll, Gegenproben, die je eine Unterlage oder Modellantwort verfälschen, und eine Gegenprobe, die Sicherungen abschaltet und zeigt, dass die Messung Fehler bemerkt.
+- **Übertragen:** [docs/adapt.md](docs/adapt.md) (englisch) nennt, welche Teile zum Schadenbeispiel gehören, welche allgemein sind und in welcher Reihenfolge man das Muster auf einen eigenen Vorgang überträgt.
+
+Es ist eine Vorlage zum Lesen und Ändern, keine Bibliothek und kein Produktivsystem; siehe [Grenzen](#grenzen). Alle Fälle, Namen und Bedingungen sind erfunden.
+
+Voraussetzung: Python 3.12 oder neuer, nur Standardbibliothek.
 
 ## Was die Strecke zeigt
 
@@ -19,6 +25,8 @@ Drei Fälle Schritt für Schritt, mit den echten Daten aus diesem Repo: [docs/wa
 ## Ansehen ohne Schlüssel und ohne Modellaufruf
 
 Die Modellantworten eines Laufs vom 16.11.2026 liegen in `lauf/` (16 gelesene Formulare, 8 Briefentwürfe). Damit läuft alles lokal und ohne Netz.
+
+Nötig ist Python 3.12 oder neuer. Ältere Versionen scheitern mit Meldungen, die den Grund nicht nennen: Mit Python 3.9 bricht `pipeline.py` mit einem `TypeError` bei `str | None` ab, mit Python 3.11 bricht `report.py` mit einem `SyntaxError` ab (Backslash in einem f-String-Ausdruck). Lokal ausgeführt mit Python 3.12.13, 3.13.13, 3.14.5 und 3.15.2. Heißt das Programm auf dem eigenen Rechner `python` statt `python3`, gelten die Befehle entsprechend.
 
 1. **Ergebnisseite öffnen:** `schaden-demo.html` im Browser öffnen. Die Seite ist eine einzelne Datei ohne externe Abhängigkeiten.
 2. **Wiedergabe starten:**
@@ -44,16 +52,19 @@ Die Modellantworten eines Laufs vom 16.11.2026 liegen in `lauf/` (16 gelesene Fo
 
    `beispiel.py` zeigt für einen Fall den Eingang, die vom Modell gelesenen Felder mit ihren Zitaten, die Prüfschritte des Codes in ihrer Reihenfolge, die Entscheidung und den Entwurf des Schreibens. Es ruft kein Modell auf und schreibt keine Datei. `--liste` nennt alle 16 Fälle mit ihrer Entscheidung, `--en` beschriftet die Ausgabe englisch.
 
-Voraussetzung: Python 3.12 oder neuer, nur Standardbibliothek. `report.py` nutzt einen Backslash in einem f-String-Ausdruck; Python 3.11 lehnt die Datei deshalb mit einem Syntaxfehler ab. Lokal ausgeführt mit Python 3.12.13, 3.13.13 und 3.14.5. Heißt das Programm auf dem eigenen Rechner `python` statt `python3`, gelten die Befehle entsprechend.
-
 Ein neuer Modell-Lauf ist für das Ansehen nicht nötig. `python3 pipeline.py --neu` fragt das Modell für alle Fälle neu und überschreibt die Dateien in `lauf/`. Der Aufruf geht über das Kommandozeilenprogramm `claude` und dessen eigene Anmeldung; im Code steht kein Schlüssel. Fehlt eine Datei in `lauf/`, bricht der Aufruf ohne `--neu` mit einem Hinweis ab und ruft kein Modell auf. Mit `--modell-erlaubt` fragt er das Modell nur für die fehlenden Dateien.
 
 ### Eigener Fall ohne Modellaufruf
 
-1. Den Fall in `faelle.json` anhängen, mit Vertragsdaten, `meldung`, `beleg` und dem Soll unter `gold` (Pflicht).
+1. Den Fall in `faelle.json` anhängen, mit Vertragsdaten, `meldung`, `beleg` und dem Soll unter `gold` (Pflicht). Am einfachsten einen vorhandenen Eintrag kopieren; jeder Schlüssel ist in [docs/adapt.md](docs/adapt.md#the-structure-of-a-case) beschrieben (englisch).
 2. `lauf/Fxx_gelesen.json` von Hand anlegen. Am einfachsten `lauf/F01_gelesen.json` kopieren und anpassen; die Felder stehen unten.
-3. Lautet die Entscheidung `auszahlen` oder `ablehnen`, zusätzlich `lauf/Fxx_brief.txt` mit dem Text des Schreibens anlegen.
+3. Lautet die Entscheidung `auszahlen` oder `ablehnen`, zusätzlich `lauf/Fxx_brief.txt` mit dem Text des Schreibens anlegen; ein beliebiger Text genügt. Ist die Entscheidung noch nicht bekannt, `python3 pipeline.py` starten: Der Aufruf bricht mit `Fxx_brief.txt fehlt in lauf/` ab, wenn das Schreiben gebraucht wird.
 4. `python3 pipeline.py && python3 report.py`
+5. `python3 -m unittest`, nach Schritt 4: Ein Test vergleicht mit `ergebnis.json` und schlägt fehl, bis die Wiedergabe den neuen Fall dort eingetragen hat.
+
+In der Zeile des eigenen Falls muss `OK` stehen. `FALSCH` heißt, dass Soll und Ergebnis voneinander abweichen; `python3 beispiel.py Fxx` zeigt jede Prüfung. `pipeline.py` endet in beiden Fällen mit Status 0; fehlschlagen tun die Tests.
+
+Wer das Muster auf einen anderen Vorgang übertragen will, statt einen weiteren Schadenfall anzulegen: [docs/adapt.md](docs/adapt.md) (englisch).
 
 ### Formular der Modellantwort
 
@@ -101,7 +112,7 @@ Gegenprobe: Dieselbe Messung mit je einer abgeschalteten Sicherung.
 | Betragsgrenze | 1 Fall (F10) | 1 |
 | Auffälligkeiten | 7 Fälle (F07, F08, F11, F12, F13, F14, F15) | 6 (F14 hat keinen Beleg und damit keinen Betrag; ohne Betrag wird nie ausgezahlt) |
 
-Tests: 64 Tests, alle bestanden. `tests/test_entscheidung.py` prüft Entscheidung, Gründe, Paragraf und Betrag sowie die sechs gelesenen Felder aller 16 Fälle gegen `gold`, auf Basis der gespeicherten Antworten und mit gesperrtem Modellaufruf. `tests/test_haertung.py` verfälscht je eine Unterlage oder Modellantwort und erwartet, dass der Fall nicht automatisch ausgezahlt wird. `tests/test_beispiel.py` prüft, dass `beispiel.py` für jeden Fall dasselbe Ergebnis zeigt wie `ergebnis.json`, kein Modell aufruft und keine Datei schreibt.
+Tests: 70 Tests, alle bestanden. `tests/test_entscheidung.py` prüft Entscheidung, Gründe, Paragraf und Betrag sowie die sechs gelesenen Felder aller 16 Fälle gegen `gold`, auf Basis der gespeicherten Antworten und mit gesperrtem Modellaufruf. `tests/test_haertung.py` verfälscht je eine Unterlage oder Modellantwort und erwartet, dass der Fall nicht automatisch ausgezahlt wird. `tests/test_beispiel.py` prüft, dass `beispiel.py` für jeden Fall dasselbe Ergebnis zeigt wie `ergebnis.json`, kein Modell aufruft und keine Datei schreibt. `tests/test_seite.py` liest den Quelltext von `report.py` und prüft, dass Felder aus der Fallakte nur über die Maskierung in die Ergebnisseite gelangen.
 
 ### Automatische Prüfung bei jeder Änderung
 
@@ -157,6 +168,8 @@ Diese Sicherungen sind nach der ersten Fassung entstanden: Eine automatische Sic
 - Fälle, Namen, Werkstatt und Bedingungen sind erfunden. Die Bedingungen gehören zu keinem Versicherer; die Strecke trifft keine Aussage über echte Versicherungsbedingungen.
 - Kein Produktivsystem. Es gibt keine Anbindung an Posteingang, Bestandssystem oder Zahlung, keine Oberfläche für die Freigabe durch einen Menschen und keinen Versand der Schreiben. Einzelheiten in [docs/walkthrough.de.md](docs/walkthrough.de.md).
 - Die Unterlagen sind Text. Fotos, Scans und Handschrift werden nicht gelesen; Fall F16 ist die Abschrift einer handgeschriebenen Quittung.
+- Die Schadenart ist ein Urteil des Modells. Der Code prüft, ob das Zitat dazu in den Unterlagen steht, nicht ob es die gewählte Schadenart trägt. Beispiel: Wer in `lauf/F04_gelesen.json` `schadenart` von `optisch` auf `sturz_bruch` ändert und das Zitat stehen lässt, macht aus der vorgeschlagenen Ablehnung eine automatische Auszahlung von 210,00 €.
+- Der Entwurf des Schreibens wird nicht gegen die Tatsachen geprüft. Bei einer Ablehnung nach § 3 a bis d gehört das zitierte Kundenwort zur Schadenart zu den Tatsachen, die das Modell für das Schreiben bekommt.
 - Fälle und Soll stammen vom selben Autor wie der Code. 16 von 16 sagt deshalb wenig über die Leistung bei fremden, echten Fällen.
 - Die Zahlen oben gelten für einen gespeicherten Modell-Lauf. Ein neuer Lauf kann andere Antworten liefern.
 - Über mehrere Fälle hinweg wird nur die doppelte Belegnummer geprüft, und nur innerhalb eines Laufs.
@@ -176,10 +189,17 @@ Diese Sicherungen sind nach der ersten Fassung entstanden: Eine automatische Sic
 | `bedingungen.md` | die erfundenen Bedingungen |
 | `lauf/` | gespeicherte Modellantworten |
 | `ergebnis.json`, `schaden-demo.html` | Ergebnis der Wiedergabe vom 18.11.2026 auf den Modellantworten vom 16.11.2026 |
-| `tests/` | Tests gegen das Soll, Gegenproben zu den Sicherungen, Tests zu `beispiel.py` |
+| `tests/` | Tests gegen das Soll, Gegenproben zu den Sicherungen, Tests zu `beispiel.py` und zur Vorlage der Ergebnisseite |
 | `docs/walkthrough.de.md`, `docs/walkthrough.md` | drei Fälle Schritt für Schritt, deutsch und englisch |
+| `docs/adapt.md` | welche Teile zum Beispiel gehören, welche allgemein sind, und eine Checkliste für den eigenen Vorgang (englisch) |
 | `.github/workflows/test.yml` | automatische Prüfung bei Push und Pull Request |
+| `.github/ISSUE_TEMPLATE/` | Formulare für die Meldung eines Wegs zu einer falschen Entscheidung und für Fragen und Ideen (englisch) |
+| `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md` | wie man einen Fall oder eine Änderung beiträgt, was hier als Sicherheitsproblem gilt, was sich geändert hat (englisch) |
 | `README.md`, `README.de.md` | diese Beschreibung, englisch und deutsch |
+
+## Mitmachen
+
+Der nützlichste Beitrag ist ein Gegenbeispiel: ein Fall, der automatisch ausgezahlt wird, obwohl er es nicht dürfte. [CONTRIBUTING.md](CONTRIBUTING.md) beschreibt, wie man ihn aufschreibt und wie man die Tests startet; [SECURITY.md](SECURITY.md) sagt, welche dieser Meldungen nicht mit allen Einzelheiten öffentlich stehen sollen. Beide Dateien sind englisch.
 
 ## Lizenz
 

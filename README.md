@@ -4,11 +4,17 @@
 
 English · [Deutsch](README.de.md)
 
-A small demonstration pipeline: a device damage claim travels from the inbox to a proposed decision.
+A small, runnable template for one way of putting a language model into a decision process: **the model reads, fixed code decides, a human approves.** The worked example is a device damage claim (German: "Schadenfall") that travels from the inbox to a proposed decision.
 
-All cases, names and insurance terms are invented.
+- **Look at it:** 16 invented cases, stored model answers and a results page. Everything runs offline, without a key, without a model call and without installing anything.
+- **Check it:** tests against expected values set by hand, counter-tests that falsify one document or one model answer at a time, and a counter-check that switches safeguards off to show that the measurement notices errors.
+- **Adapt it:** [docs/adapt.md](docs/adapt.md) says which parts are specific to the claim example, which are general, and in which order to move the pattern to your own process.
+
+It is a template to read and edit, not a library and not a production system; see [Limits](#limits). All cases, names and insurance terms are invented.
 
 The cases, the insurance terms, the letters to customers and the results page are in German. Identifiers in code and data are German too; the [glossary](#glossary) below explains them.
+
+Requirement: Python 3.12 or newer, standard library only.
 
 ## What the pipeline shows
 
@@ -21,6 +27,8 @@ Three cases step by step, with the real data from this repository: [docs/walkthr
 ## Look at it without a key and without a model call
 
 The model answers of a run on 16 November 2026 are stored in `lauf/` (16 filled-in forms, 8 draft letters). With them everything runs locally and offline.
+
+Python 3.12 or newer is required. Older versions fail with errors that do not name the cause: with Python 3.9, `pipeline.py` stops with a `TypeError` at `str | None`; with Python 3.11, `report.py` stops with a `SyntaxError` (a backslash inside an f-string expression). Run locally with Python 3.12.13, 3.13.13, 3.14.5 and 3.15.2. If the interpreter on your machine is called `python` instead of `python3`, use that name in the commands.
 
 1. **Open the results page:** open `schaden-demo.html` in a browser. The page is a single file without external dependencies. It is in German; see [Reading the results page](#reading-the-results-page).
 2. **Start the replay:**
@@ -48,16 +56,19 @@ The model answers of a run on 16 November 2026 are stored in `lauf/` (16 filled-
 
    `beispiel.py` shows, for one case, what came in, the fields the model read with their quotes, the checks the code ran in order, the decision and the draft letter. It calls no model and writes no file. `--liste` lists all 16 cases with their decision. `--en` prints English labels; the documents, the check results and the letter stay German. Without `--en` the labels are German.
 
-Requirement: Python 3.12 or newer, standard library only. `report.py` uses a backslash inside an f-string expression, so Python 3.11 rejects the file with a syntax error. Run locally with Python 3.12.13, 3.13.13 and 3.14.5. If the interpreter on your machine is called `python` instead of `python3`, use that name in the commands.
-
 A new model run is not needed to look at the demo. `python3 pipeline.py --neu` asks the model again for all cases and overwrites the files in `lauf/`. The call goes through the command line program `claude` and its own login; there is no key in the code. If a file in `lauf/` is missing, the call without `--neu` stops with a message and calls no model. With `--modell-erlaubt` it asks the model only for the missing files.
 
 ### Your own case without a model call
 
-1. Append the case to `faelle.json`, with the contract data, `meldung`, `beleg` and the expected values under `gold` (required).
+1. Append the case to `faelle.json`, with the contract data, `meldung`, `beleg` and the expected values under `gold` (required). The easiest way is to copy an existing entry; every key is described in [docs/adapt.md](docs/adapt.md#the-structure-of-a-case).
 2. Create `lauf/Fxx_gelesen.json` by hand. The easiest way is to copy `lauf/F01_gelesen.json` and adapt it; the fields are listed below.
-3. If the decision is `auszahlen` or `ablehnen`, also create `lauf/Fxx_brief.txt` with the text of the letter.
+3. If the decision is `auszahlen` or `ablehnen`, also create `lauf/Fxx_brief.txt` with the text of the letter; any text will do. If you do not know the decision yet, run `python3 pipeline.py`: it stops with `Fxx_brief.txt fehlt in lauf/` if the letter is needed.
 4. `python3 pipeline.py && python3 report.py`
+5. `python3 -m unittest`, after step 4: one test compares with `ergebnis.json` and fails until the replay has written the new case into it.
+
+The line for your case must say `OK`. `FALSCH` means that the expected values and the result differ; `python3 beispiel.py Fxx --en` lists every check. `pipeline.py` exits with status 0 in both cases; the tests are what fail.
+
+To move the pattern to a different process instead of adding one more claim, see [docs/adapt.md](docs/adapt.md).
 
 ### The form the model fills in
 
@@ -113,7 +124,7 @@ Counter-check: the same measurement with one safeguard switched off at a time.
 | Amount limit | 1 case (F10) | 1 |
 | Warning signs | 7 cases (F07, F08, F11, F12, F13, F14, F15) | 6 (F14 has no receipt and therefore no amount; without an amount nothing is ever paid out) |
 
-Tests: 64 tests, all passing. `tests/test_entscheidung.py` checks decision, reasons, section and amount as well as the six read fields of all 16 cases against `gold`, based on the stored answers and with the model call blocked. `tests/test_haertung.py` falsifies one document or one model answer at a time and expects that the case is not paid out automatically. `tests/test_beispiel.py` checks that `beispiel.py` shows the same result as `ergebnis.json` for every case, calls no model and writes no file.
+Tests: 70 tests, all passing. `tests/test_entscheidung.py` checks decision, reasons, section and amount as well as the six read fields of all 16 cases against `gold`, based on the stored answers and with the model call blocked. `tests/test_haertung.py` falsifies one document or one model answer at a time and expects that the case is not paid out automatically. `tests/test_beispiel.py` checks that `beispiel.py` shows the same result as `ergebnis.json` for every case, calls no model and writes no file. `tests/test_seite.py` reads the source of `report.py` and checks that fields from the case file reach the results page only through escaping.
 
 ### Automatic check on every change
 
@@ -188,7 +199,7 @@ File names and options:
 | `ergebnis.json` | result |
 | `schaden-demo.html` | results page ("Schaden" = damage, claim) |
 | `beispiel.py` | example |
-| `tests/test_entscheidung.py`, `tests/test_haertung.py`, `tests/test_beispiel.py` | tests for the decision, for hardening, for the example script |
+| `tests/test_entscheidung.py`, `tests/test_haertung.py`, `tests/test_beispiel.py`, `tests/test_seite.py` | tests for the decision, for hardening, for the example script, for the results page ("Seite" = page) |
 | `--neu`, `--modell-erlaubt` | "new", "model allowed": the only two options that permit a model call |
 | `--liste`, `--en` | options of `beispiel.py`: list all cases, English labels |
 
@@ -247,6 +258,8 @@ These safeguards were added after the first version: an automated security check
 - Cases, names, repair shop and terms are invented. The terms belong to no insurer; the pipeline makes no statement about real insurance terms.
 - Not a production system. There is no connection to an inbox, a policy administration system or payments, no interface for approval by a human and no sending of the letters. Details in [docs/walkthrough.md](docs/walkthrough.md).
 - The documents are text. Photos, scans and handwriting are not read; case F16 is the transcript of a handwritten receipt.
+- The type of damage is the model's judgement. The code checks that the quote for it is in the documents, not that the quote supports the chosen type. Example: changing `schadenart` in `lauf/F04_gelesen.json` from `optisch` to `sturz_bruch` with the quote unchanged turns the proposed rejection into an automatic payout of 210,00 €.
+- The draft letter is not checked against the facts. For a rejection under § 3 a to d, the quoted customer text for the type of damage is part of the facts handed to the letter-writing model.
 - Cases and expected values come from the same author as the code. 16 of 16 therefore says little about performance on unfamiliar, real cases.
 - The figures above hold for one stored model run. A new run can give different answers.
 - Across cases only the duplicate receipt number is checked, and only within one run.
@@ -266,10 +279,17 @@ These safeguards were added after the first version: an automated security check
 | `bedingungen.md` | the invented terms |
 | `lauf/` | stored model answers |
 | `ergebnis.json`, `schaden-demo.html` | result of the replay on 18 November 2026 on the model answers of 16 November 2026 |
-| `tests/` | tests against the expected values, counter-tests for the safeguards, tests for `beispiel.py` |
+| `tests/` | tests against the expected values, counter-tests for the safeguards, tests for `beispiel.py` and for the template of the results page |
 | `docs/walkthrough.md`, `docs/walkthrough.de.md` | three cases step by step, English and German |
+| `docs/adapt.md` | which parts are specific, which are general, and a checklist for your own process (English) |
 | `.github/workflows/test.yml` | automatic check on push and pull request |
+| `.github/ISSUE_TEMPLATE/` | forms for reporting a path to a wrong decision, and for questions and ideas |
+| `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md` | how to contribute a case or a change, what counts as a security problem here, what changed |
 | `README.md`, `README.de.md` | this description, English and German |
+
+## Contributing
+
+The most useful contribution is a counter-example: a case that is paid out automatically although it should not be. [CONTRIBUTING.md](CONTRIBUTING.md) says how to write one down and how to run the tests; [SECURITY.md](SECURITY.md) says which of these should not be posted with full details.
 
 ## License
 
