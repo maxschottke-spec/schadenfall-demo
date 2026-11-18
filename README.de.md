@@ -1,5 +1,9 @@
 # Schadenfall-Demo
 
+[![tests](https://github.com/maxschottke-spec/schadenfall-demo/actions/workflows/test.yml/badge.svg)](https://github.com/maxschottke-spec/schadenfall-demo/actions/workflows/test.yml)
+
+Deutsch · [English](README.md)
+
 Eine kleine Vorführstrecke: Ein Geräteschaden läuft vom Posteingang bis zum Entscheidungsvorschlag.
 
 Alle Fälle, Namen und Bedingungen sind erfunden.
@@ -9,6 +13,8 @@ Alle Fälle, Namen und Bedingungen sind erfunden.
 Das Sprachmodell liest Schadenmeldung und Beleg und füllt ein Formular; zu jedem Feld liefert es ein wörtliches Zitat aus den Unterlagen.
 Fester Code prüft, ob jedes Zitat wirklich in den Unterlagen steht, rechnet nach, prüft Bedingungen und Auffälligkeiten und entscheidet.
 Ein Mensch gibt alles frei, was nicht eindeutig ist: jede Auffälligkeit, jeden Betrag über 500 € und jede Ablehnung.
+
+Drei Fälle Schritt für Schritt, mit den echten Daten aus diesem Repo: [docs/walkthrough.de.md](docs/walkthrough.de.md). Dort steht auch, was umgesetzt ist, was hier aus gespeicherten Antworten kommt und was es nicht gibt.
 
 ## Ansehen ohne Schlüssel und ohne Modellaufruf
 
@@ -29,7 +35,16 @@ Die Modellantworten eines Laufs vom 16.11.2026 liegen in `lauf/` (16 gelesene Fo
    python3 -m unittest -v
    ```
 
-Voraussetzung: Python 3.12 oder neuer, nur Standardbibliothek. Geprüft mit Python 3.14.5.
+4. **Einen Fall auf der Konsole durchspielen:**
+
+   ```
+   python3 beispiel.py F01
+   python3 beispiel.py --liste
+   ```
+
+   `beispiel.py` zeigt für einen Fall den Eingang, die vom Modell gelesenen Felder mit ihren Zitaten, die Prüfschritte des Codes in ihrer Reihenfolge, die Entscheidung und den Entwurf des Schreibens. Es ruft kein Modell auf und schreibt keine Datei. `--liste` nennt alle 16 Fälle mit ihrer Entscheidung, `--en` beschriftet die Ausgabe englisch.
+
+Voraussetzung: Python 3.12 oder neuer, nur Standardbibliothek. `report.py` nutzt einen Backslash in einem f-String-Ausdruck; Python 3.11 lehnt die Datei deshalb mit einem Syntaxfehler ab. Lokal ausgeführt mit Python 3.12.13, 3.13.13 und 3.14.5. Heißt das Programm auf dem eigenen Rechner `python` statt `python3`, gelten die Befehle entsprechend.
 
 Ein neuer Modell-Lauf ist für das Ansehen nicht nötig. `python3 pipeline.py --neu` fragt das Modell für alle Fälle neu und überschreibt die Dateien in `lauf/`. Der Aufruf geht über das Kommandozeilenprogramm `claude` und dessen eigene Anmeldung; im Code steht kein Schlüssel. Fehlt eine Datei in `lauf/`, bricht der Aufruf ohne `--neu` mit einem Hinweis ab und ruft kein Modell auf. Mit `--modell-erlaubt` fragt er das Modell nur für die fehlenden Dateien.
 
@@ -86,7 +101,24 @@ Gegenprobe: Dieselbe Messung mit je einer abgeschalteten Sicherung.
 | Betragsgrenze | 1 Fall (F10) | 1 |
 | Auffälligkeiten | 7 Fälle (F07, F08, F11, F12, F13, F14, F15) | 6 (F14 hat keinen Beleg und damit keinen Betrag; ohne Betrag wird nie ausgezahlt) |
 
-Tests: 52 Tests, alle bestanden. `tests/test_entscheidung.py` prüft Entscheidung, Gründe, Paragraf und Betrag sowie die sechs gelesenen Felder aller 16 Fälle gegen `gold`, auf Basis der gespeicherten Antworten und mit gesperrtem Modellaufruf. `tests/test_haertung.py` verfälscht je eine Unterlage oder Modellantwort und erwartet, dass der Fall nicht automatisch ausgezahlt wird.
+Tests: 64 Tests, alle bestanden. `tests/test_entscheidung.py` prüft Entscheidung, Gründe, Paragraf und Betrag sowie die sechs gelesenen Felder aller 16 Fälle gegen `gold`, auf Basis der gespeicherten Antworten und mit gesperrtem Modellaufruf. `tests/test_haertung.py` verfälscht je eine Unterlage oder Modellantwort und erwartet, dass der Fall nicht automatisch ausgezahlt wird. `tests/test_beispiel.py` prüft, dass `beispiel.py` für jeden Fall dasselbe Ergebnis zeigt wie `ergebnis.json`, kein Modell aufruft und keine Datei schreibt.
+
+### Automatische Prüfung bei jeder Änderung
+
+`.github/workflows/test.yml` läuft bei jedem Push auf `main` und bei jedem Pull Request, mit Python 3.12 und 3.13. Der Ablauf legt ein falsches Programm `claude` vorn in den Suchpfad, das jeden Aufruf protokolliert und mit Fehler endet. Dann laufen die Tests, die Wiedergabe (`pipeline.py`, `report.py`) und `beispiel.py F01`. Der Ablauf schlägt fehl, wenn ein Modellaufruf protokolliert wurde oder wenn sich `ergebnis.json` oder `schaden-demo.html` in mehr als der Zeitangabe des Laufs vom eingecheckten Stand unterscheiden.
+
+## Begriffe
+
+Bezeichner in Code und Daten sind deutsch. Die englische Fassung dieser Datei erklärt sie in einer Glossartabelle; hier stehen nur die Werte, die überall wiederkehren.
+
+| Bezeichner | Bedeutung |
+| --- | --- |
+| `entscheidung` | Ergebnis der Prüfung, einer der drei folgenden Werte |
+| `auszahlen` | automatisch auszahlen: nur ohne Auffälligkeit und bis 500 € |
+| `ablehnen` | Ablehnung vorschlagen, mit Paragraf; ein Mensch gibt sie frei |
+| `an_mensch` | ein Mensch entscheidet; die Gründe stehen in `gruende` |
+| `schritte` | die Prüfschritte eines Falls in ihrer Reihenfolge, je mit `status` `gruen`, `gelb` oder `rot` |
+| `gold` | das von Hand festgelegte Soll eines Falls |
 
 ## Gründe für die Übergabe an einen Menschen
 
@@ -123,7 +155,7 @@ Diese Sicherungen sind nach der ersten Fassung entstanden: Eine automatische Sic
 ## Grenzen
 
 - Fälle, Namen, Werkstatt und Bedingungen sind erfunden. Die Bedingungen gehören zu keinem Versicherer; die Strecke trifft keine Aussage über echte Versicherungsbedingungen.
-- Kein Produktivsystem. Es gibt keine Anbindung an Posteingang, Bestandssystem oder Zahlung.
+- Kein Produktivsystem. Es gibt keine Anbindung an Posteingang, Bestandssystem oder Zahlung, keine Oberfläche für die Freigabe durch einen Menschen und keinen Versand der Schreiben. Einzelheiten in [docs/walkthrough.de.md](docs/walkthrough.de.md).
 - Die Unterlagen sind Text. Fotos, Scans und Handschrift werden nicht gelesen; Fall F16 ist die Abschrift einer handgeschriebenen Quittung.
 - Fälle und Soll stammen vom selben Autor wie der Code. 16 von 16 sagt deshalb wenig über die Leistung bei fremden, echten Fällen.
 - Die Zahlen oben gelten für einen gespeicherten Modell-Lauf. Ein neuer Lauf kann andere Antworten liefern.
@@ -139,11 +171,15 @@ Diese Sicherungen sind nach der ersten Fassung entstanden: Eine automatische Sic
 | --- | --- |
 | `pipeline.py` | Leseauftrag an das Modell, Prüfungen, Entscheidung, Messung, Gegenprobe |
 | `report.py` | baut aus `ergebnis.json` die Ergebnisseite |
+| `beispiel.py` | spielt einen Fall auf der Konsole durch, ohne Modell und ohne zu schreiben |
 | `faelle.json` | 16 Fälle mit Soll |
 | `bedingungen.md` | die erfundenen Bedingungen |
 | `lauf/` | gespeicherte Modellantworten |
 | `ergebnis.json`, `schaden-demo.html` | Ergebnis der Wiedergabe vom 18.11.2026 auf den Modellantworten vom 16.11.2026 |
-| `tests/` | Tests gegen das Soll und Gegenproben zu den Sicherungen |
+| `tests/` | Tests gegen das Soll, Gegenproben zu den Sicherungen, Tests zu `beispiel.py` |
+| `docs/walkthrough.de.md`, `docs/walkthrough.md` | drei Fälle Schritt für Schritt, deutsch und englisch |
+| `.github/workflows/test.yml` | automatische Prüfung bei Push und Pull Request |
+| `README.md`, `README.de.md` | diese Beschreibung, englisch und deutsch |
 
 ## Lizenz
 
