@@ -562,12 +562,12 @@ def messe(fall: dict, x: dict, erg: dict) -> dict:
     felder = {}
     for soll_name, ist_name in FELDER:
         soll, ist = g[soll_name], x.get(ist_name)
-        if isinstance(soll, float):
-            ok = ist is not None and abs(float(ist) - soll) < 0.005
+        if isinstance(soll, (int, float)) and not isinstance(soll, bool):   # auch 249 statt 249.0 im Soll
+            ok = in_cent(ist) is not None and abs(float(ist) - soll) < 0.005
         else:
             ok = norm(str(soll)) == norm(str(ist)) if soll is not None else ist in (None, "")
         felder[soll_name] = {"soll": soll, "ist": ist, "ok": ok}
-    ent_ok = (erg["entscheidung"] == g["entscheidung"] and erg["gruende"] == g["gruende"]
+    ent_ok = (erg["entscheidung"] == g["entscheidung"] and erg["gruende"] == sorted(g["gruende"])
               and erg["paragraf"] == g["paragraf"]
               and (g["betrag"] is None and erg["betrag"] is None
                    or g["betrag"] is not None and erg["betrag"] is not None and abs(erg["betrag"] - g["betrag"]) < 0.005))

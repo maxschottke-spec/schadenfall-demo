@@ -315,6 +315,26 @@ class Haertung(unittest.TestCase):
         self.x["gesamtbetrag_beleg"] = self.x["gesamtbetrag_beleg"].replace("249,00", "19,00")
         self.nicht_auszahlen("kein_auszahlbetrag")
 
+    def test_grenze_genau_500_euro(self):
+        # "bis 500 €": genau 500,00 € gehen automatisch, 500,01 € gehen zum Menschen.
+        self.assertEqual(pipeline.GRENZE_AUTOMATIK, 500.0)
+        for kosten, erwartet in (("550,00", "auszahlen"), ("550,01", "an_mensch")):
+            with self.subTest(kosten=kosten):
+                self.setUp()
+                teil = kosten.replace("550", "490")
+                self.fall["beleg"] = self.fall["beleg"].replace("189,00", teil).replace("249,00", kosten)
+                self.x["positionen"][0]["betrag"] = float(teil.replace(",", "."))
+                self.x["gesamtbetrag"] = float(kosten.replace(",", "."))
+                self.x["gesamtbetrag_beleg"] = self.x["gesamtbetrag_beleg"].replace("249,00", kosten)
+                self.assertIn(self.x["gesamtbetrag_beleg"], self.fall["beleg"])
+                erg = self.entscheide()
+                self.assertEqual(erg["entscheidung"], erwartet, erg)
+                if erwartet == "auszahlen":
+                    self.assertAlmostEqual(erg["betrag"], 500.0, places=2)
+                else:
+                    self.assertEqual(erg["gruende"], ["betrag_ueber_grenze"])
+                    self.assertAlmostEqual(erg["betrag"], 500.01, places=2)
+
     def test_vertragsdaten_ungueltig(self):
         for feld, wert in (("kaufpreis", float("nan")), ("kaufpreis", float("inf")), ("kaufdatum", "2027-03-10")):
             with self.subTest(feld=feld, wert=wert):

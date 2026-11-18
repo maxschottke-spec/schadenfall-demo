@@ -106,11 +106,38 @@ class GeleseneFelderGegenSoll(OhneModell):
                 with self.subTest(fall=fall["id"], feld=soll_name):
                     if soll is None:
                         self.assertIn(ist, (None, ""))
-                    elif isinstance(soll, float):
+                    elif isinstance(soll, (int, float)) and not isinstance(soll, bool):
                         self.assertIsNotNone(ist)
                         self.assertAlmostEqual(float(ist), soll, places=2)
                     else:
                         self.assertEqual(str(ist).strip().lower(), str(soll).strip().lower())
+
+
+class MessungGegenSoll(OhneModell):
+    """Das Soll eines eigenen Falls darf in üblicher Schreibweise stehen, ohne dass die Messung falsch anschlägt."""
+
+    def test_betrag_im_soll_als_ganze_zahl(self):
+        fall = json.loads(json.dumps(next(f for f in FAELLE if f["id"] == "F01")))
+        x = gespeichert("F01")
+        erg = pipeline.pruefe(fall, x, {})
+        fall["gold"]["gesamtbetrag"], fall["gold"]["betrag"] = 249, 199
+        m = pipeline.messe(fall, x, erg)
+        self.assertTrue(m["felder"]["gesamtbetrag"]["ok"])
+        self.assertTrue(m["entscheidung_ok"])
+        fall["gold"]["gesamtbetrag"] = 250
+        self.assertFalse(pipeline.messe(fall, x, erg)["felder"]["gesamtbetrag"]["ok"])
+
+    def test_reihenfolge_der_gruende_im_soll_ist_gleichgueltig(self):
+        # F13 ist verspätet gemeldet; mit fremder Seriennummer im Vertrag kommen zwei Gründe zusammen.
+        fall = json.loads(json.dumps(next(f for f in FAELLE if f["id"] == "F13")))
+        x = gespeichert("F13")
+        fall["vertrag"]["seriennr"] = "XX00-00000000"
+        erg = pipeline.pruefe(fall, x, {})
+        self.assertEqual(erg["gruende"], ["meldung_verspaetet", "seriennummer_abweichend"])
+        fall["gold"]["gruende"] = ["seriennummer_abweichend", "meldung_verspaetet"]
+        self.assertTrue(pipeline.messe(fall, x, erg)["entscheidung_ok"])
+        fall["gold"]["gruende"] = ["seriennummer_abweichend"]
+        self.assertFalse(pipeline.messe(fall, x, erg)["entscheidung_ok"])
 
 
 class Gegenprobe(OhneModell):
