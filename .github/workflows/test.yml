@@ -1,0 +1,81 @@
+# Tests and replay without any model call. Standard library only, nothing is installed.
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Put a fake claude first in PATH (it logs the call and fails)
+        run: |
+          mkdir -p "$RUNNER_TEMP/falsch"
+          printf '%s\n' '#!/bin/sh' 'echo "claude $*" >> "$MODELL_PROTOKOLL"' 'exit 97' > "$RUNNER_TEMP/falsch/claude"
+          chmod +x "$RUNNER_TEMP/falsch/claude"
+          echo "$RUNNER_TEMP/falsch" >> "$GITHUB_PATH"
+          echo "MODELL_PROTOKOLL=$RUNNER_TEMP/modellaufrufe.log" >> "$GITHUB_ENV"
+
+      - name: Positive control (a call to claude from shell or Python is caught)
+        run: |
+          test "$(command -v claude)" = "$RUNNER_TEMP/falsch/claude"
+          if MODELL_PROTOKOLL="$RUNNER_TEMP/kontrolle.log" claude -p kontrolle; then echo "fake claude did not fail"; exit 1; fi
+          grep -q "claude -p kontrolle" "$RUNNER_TEMP/kontrolle.log"
+          MODELL_PROTOKOLL="$RUNNER_TEMP/kontrolle.log" python -c 'import subprocess, sys; sys.exit(subprocess.run(["claude", "--version"]).returncode != 97)'
+          test "$(wc -l < "$RUNNER_TEMP/kontrolle.log")" -eq 2
+          test ! -e "$MODELL_PROTOKOLL"
+
+      - name: Unit tests
+        run: python -m unittest -v
+
+      - name: Replay from the stored model answers
+        run: |
+          python pipeline.py
+          python report.py
+
+      - name: Play one case on the console
+        run: python beispiel.py F01
+
+      - name: No model call happened
+        run: |
+          if [ -e "$MODELL_PROTOKOLL" ]; then echo "a model call was attempted:"; cat "$MODELL_PROTOKOLL"; exit 1; fi
+          echo "no model call logged"
+
+      - name: ergebnis.json and results page unchanged except for the run timestamp
+        run: |
+          python - <<'PY'
+          import json, pathlib, subprocess, sys
+
+          def stand(datei):
+              return subprocess.run(["git", "show", "HEAD:" + datei], capture_output=True, check=True).stdout.decode("utf-8")
+
+          alt, neu = json.loads(stand("ergebnis.json")), json.loads(pathlib.Path("ergebnis.json").read_text(encoding="utf-8"))
+          lauf_alt, lauf_neu = alt["zusammenfassung"].pop("lauf"), neu["zusammenfassung"].pop("lauf")
+          if alt != neu:
+              sys.exit("ergebnis.json differs from the committed file outside the field lauf")
+          z = neu["zusammenfassung"]
+          if z["entscheidung_ok"] != z["faelle"] or z["felder_ok"] != z["felder_gesamt"] or z["falsch_ausgezahlt"] != 0:
+              sys.exit(f"measurement not complete: {z}")
+          seite_neu = pathlib.Path("schaden-demo.html").read_text(encoding="utf-8")
+          if stand("schaden-demo.html").replace(lauf_alt, lauf_neu) != seite_neu:
+              sys.exit("schaden-demo.html differs from the committed file outside the run timestamp")
+          print(f"unchanged except lauf: {lauf_alt} -> {lauf_neu}; decisions {z['entscheidung_ok']} of {z['faelle']}")
+          PY
+          git diff --stat
+          test -z "$(git status --porcelain -- . ':!ergebnis.json' ':!schaden-demo.html')"
