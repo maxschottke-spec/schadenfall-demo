@@ -10,6 +10,7 @@ Alle Fälle, Namen und Bedingungen sind erfunden.
 Aufruf:  python3 pipeline.py          (nutzt gespeicherte Modellantworten, falls vorhanden)
          python3 pipeline.py --neu    (fragt das Modell für alle Fälle neu)
 """
+import tempfile
 import json, re, subprocess, sys, datetime, pathlib
 from concurrent.futures import ThreadPoolExecutor
 
@@ -31,8 +32,11 @@ ARTEN = sorted(VERSICHERT | set(AUSSCHLUSS) | {"unklar"})
 
 def modell(prompt: str) -> tuple[str, str]:
     """Ruft Claude ohne Werkzeuge auf und gibt (Antworttext, Modellname) zurück."""
-    r = subprocess.run(["claude", "-p", "--model", MODELL, "--output-format", "json"],
-                       input=prompt, capture_output=True, text=True, timeout=300, cwd=HIER)
+    # Werkzeuge ausdrücklich abschalten und in einem leeren Verzeichnis starten:
+    # Der Prompt enthält Text von Kunden, das Modell soll damit nichts tun können außer antworten.
+    with tempfile.TemporaryDirectory() as leer:
+        r = subprocess.run(["claude", "-p", "--model", MODELL, "--output-format", "json", "--tools", ""],
+                           input=prompt, capture_output=True, text=True, timeout=300, cwd=leer)
     d = json.loads(r.stdout)
     name = ", ".join(sorted(d.get("modelUsage", {}).keys())) or MODELL
     return d["result"], name
@@ -96,6 +100,132 @@ def norm(s):
     return re.sub(r"\s+", " ", s or "").strip().lower()
 
 
+def kennung(s):
+    """Nur Buchstaben und Ziffern, groß: für Seriennummern und Belegnummern."""
+    return re.sub(r"[^0-9A-Za-zÄÖÜäöüß]", "", s or "").upper()
+
+
+MONATE = ["januar", "februar", "märz", "april", "mai", "juni", "juli", "august", "september",
+          "oktober", "november", "dezember"]
+ZAHL_RE = re.compile(r"(?<![\w,.])([-−–][ \t]*)?(\d[\d.,]*\d|\d)(\.?)(\s?%)?")
+DATUM_RE = re.compile(r"\d{1,2}\.\d{1,2}\.(\d{2}|\d{4})?")
+SERIEN_RE = re.compile(
+    r"(?:serien(?:nummer|nr\.?|-nr\.?)|serial(?: number| no\.?)?|s/n|\bsn\b|imei|geräte(?:nummer|-nr\.?|nr\.?))"
+    r"\W{0,3}([0-9A-Za-z][0-9A-Za-z\- ]{4,30}[0-9A-Za-z])", re.I)
+
+
+def zahl_cent(token):
+    """Ein Zahlentoken als Geldbetrag in Cent. None, wenn es nicht eindeutig lesbar ist."""
+    if len(token) > 15:
+        return None
+    if re.fullmatch(r"\d{1,3}(\.\d{3})+(,\d{1,2})?", token):        # 1.249,00
+        ganz, _, nach = token.replace(".", "").partition(",")
+    elif re.fullmatch(r"\d+,\d{1,2}", token):                         # 249,5
+        ganz, _, nach = token.partition(",")
+    elif re.fullmatch(r"\d+\.\d{1,2}", token):                        # 249.00
+        ganz, _, nach = token.partition(".")
+    elif re.fullmatch(r"\d+", token):                                  # 249
+        ganz, nach = token, ""
+    else:
+        return None
+    return int(ganz) * 100 + int(nach.ljust(2, "0") or 0)
+
+
+def _betraege(text):
+    """Geldbeträge in Leserichtung. Datumsangaben und Prozentsätze zählen nicht, ein Minus bleibt erhalten."""
+    werte = []
+    for minus, token, punkt, prozent in ZAHL_RE.findall(text or ""):
+        if prozent or DATUM_RE.fullmatch(token + punkt) or DATUM_RE.fullmatch(token):
+            if not (re.fullmatch(r"\d+\.\d{1,2}", token) and not punkt and not prozent):
+                continue
+        cent = zahl_cent(token.rstrip(".,"))
+        if cent is not None:
+            werte.append(-cent if minus else cent)
+    return werte
+
+
+def betraege_cent(text):
+    """Alle Geldbeträge eines Textes in Cent."""
+    return set(_betraege(text))
+
+
+def zeilenbetraege_cent(text):
+    """Je Zeile der letzte Geldbetrag: dort steht bei einer Position der Preis, nicht die Menge."""
+    gefunden = set()
+    for zeile in (text or "").splitlines():
+        werte = _betraege(zeile)
+        if werte:
+            gefunden.add(werte[-1])
+    return gefunden
+
+
+# "1 249,00" kann eintausendzweihundert oder "Menge 1, Preis 249,00" heißen. Der Code rät nicht.
+MEHRDEUTIG_RE = re.compile(r"\d[ \t\u00a0\u2009\u202f]+\d{3}(?:[.,]\d|\D|$)")
+
+
+def zitat_vollstaendig(zitat, text):
+    """Steht das Zitat im Text, ohne dass es mitten in einer Zahl beginnt oder endet?
+
+    Verhindert, dass aus "1.249,00" oder "- 249,00" nur "249,00" zitiert wird.
+    """
+    z, t = norm(zitat), norm(text)
+    if not z:
+        return False
+    start = t.find(z)
+    while start != -1:
+        direkt, davor, danach = t[:start], t[:start].rstrip(" "), t[start + len(z):]
+        # Ziffer oder Trennzeichen zählen nur direkt davor (sonst wäre die Zeile darüber gemeint),
+        # ein Minus auch über Leerzeichen hinweg.
+        angeschnitten_vorn = z[0].isdigit() and (
+            direkt[-1:].isdigit() or direkt[-1:] in tuple(".,") or davor[-1:] in tuple("-−–"))
+        # Hinten zählt auch ein Prozentzeichen: "249 %" ist kein Betrag von 249.
+        angeschnitten_hinten = z[-1].isdigit() and bool(re.match(r"\d|[.,]\d|\s*%", danach))
+        if not angeschnitten_vorn and not angeschnitten_hinten:
+            return True
+        start = t.find(z, start + 1)
+    return False
+
+
+def in_cent(wert):
+    """Zahl in Cent oder None, wenn der Wert keine endliche Zahl ist."""
+    try:
+        zahl = float(wert)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if isinstance(wert, bool) or zahl != zahl or abs(zahl) > 1e9:
+        return None
+    return round(zahl * 100)
+
+
+def datum_im_zitat(d, zitat):
+    """Steht der Tag und der Monat des gelesenen Datums in seinem Zitat?"""
+    z = norm(zitat)
+    m = re.search(rf"(?<!\d)0?{d.day}\.\s*0?{d.month}\.\s*(\d{{4}}|\d{{2}})?(?!\d)", z) \
+        or re.search(rf"(?<!\d)0?{d.day}\.?\s*{MONATE[d.month - 1][:3]}[a-zä]*\.?\s*(\d{{4}}|\d{{2}})?(?!\d)", z)
+    if not m:
+        return False
+    jahr = m.group(1)
+    # Nennt das Zitat ein Jahr, muss es stimmen. Nur ohne Jahr gilt das Jahr des Eingangs.
+    return jahr is None or int(jahr) in (d.year, d.year % 100)
+
+
+# Jeder entscheidungsrelevante Wert braucht ein Zitat. Fehlt es, gilt der Wert als unbelegt.
+WERT_BRAUCHT_ZITAT = {"schadentag": "schadentag_beleg", "schadenart": "schadenart_beleg",
+                      "belegnummer": "belegnummer_beleg", "belegdatum": "belegdatum_beleg",
+                      "seriennummer_beleg_wert": "seriennummer_beleg", "gesamtbetrag": "gesamtbetrag_beleg"}
+
+# Felder, deren Zitat aus dem Beleg stammen muss, nicht aus der Meldung des Kunden.
+BELEG_FELDER = {"belegnummer_beleg", "belegdatum_beleg", "seriennummer_beleg", "gesamtbetrag_beleg"}
+
+# Formulierungen, die sich an ein System oder an die Sachbearbeitung richten. Diese Suche
+# läuft im Code und hängt nicht davon ab, ob das Modell die Anweisung selbst meldet.
+ANWEISUNG_MUSTER = re.compile(
+    r"ohne (weitere |erneute |jede )?prüfung|ignorier\w*|"
+    r"\b(an|für) (das|die) (system|ki|k\.i\.|sachbearbeitung)\b|"
+    r"\bsystem(hinweis|anweisung|nachricht)\b|\b(ki|assistent)[,:]|"
+    r"sofort(ige)? (auszahl\w*|freigabe\w*|freigeben)|ist freizugeben|direkt auszahlen", re.I)
+
+
 def monate(von: datetime.date, bis: datetime.date) -> int:
     m = (bis.year - von.year) * 12 + (bis.month - von.month)
     return m - 1 if bis.day < von.day else m
@@ -106,8 +236,64 @@ def zeitwert(kaufpreis: float, alter_monate: int) -> tuple[float, int]:
     return round(kaufpreis * faktor / 100, 2), faktor
 
 
+TEXT_FELDER = ("schadentag", "schadentag_beleg", "schadenart", "schadenart_beleg", "beleg_typ", "belegnummer",
+               "belegnummer_beleg", "belegdatum", "belegdatum_beleg", "seriennummer_beleg_wert",
+               "seriennummer_beleg", "gesamtbetrag_beleg", "anweisung_beleg")
+
+
+def form_fehler(fall, x):
+    """Prüft Form und Typen von Modellantwort und Fall. Gibt den ersten Fehler als Text zurück oder None."""
+    if not isinstance(x, dict):
+        return "Modellantwort ist kein Formular."
+    for feld in TEXT_FELDER:
+        if x.get(feld) is not None and not isinstance(x[feld], str):
+            return f"Feld {feld} ist kein Text."
+    for feld in ("schadentag", "belegdatum"):
+        if x.get(feld):
+            try:
+                datetime.date.fromisoformat(x[feld])
+            except ValueError:
+                return f"Feld {feld} ist kein gültiges Datum."
+    for feld in ("beleg_vorhanden", "anweisung_im_dokument"):
+        if x.get(feld) is not None and not isinstance(x[feld], bool):
+            return f"Feld {feld} ist kein Ja/Nein-Wert."
+    def zahl(w):
+        return isinstance(w, (int, float)) and not isinstance(w, bool)
+    if x.get("gesamtbetrag") is not None and not zahl(x["gesamtbetrag"]):
+        return "Feld gesamtbetrag ist keine Zahl."
+    pos = x.get("positionen")
+    if pos is not None and (not isinstance(pos, list) or any(
+            not isinstance(p, dict) or not zahl(p.get("betrag")) or not isinstance(p.get("text"), str) for p in pos)):
+        return "Positionen haben nicht die erwartete Form."
+    if not isinstance(fall.get("meldung"), str) or not isinstance(fall.get("beleg") or "", str):
+        return "Unterlagen sind kein Text."
+    if not isinstance(fall.get("vertrag"), dict):
+        return "Vertragsdaten fehlen."
+    return None
+
+
+def an_mensch_wegen(grund, detail):
+    return {"entscheidung": "an_mensch", "gruende": [grund], "betrag": None, "paragraf": None,
+            "schritte": [{"name": "Eingabe", "status": "rot", "detail": detail, "paragraf": None}]}
+
+
 def pruefe(fall: dict, x: dict, gesehene_belegnummern: dict) -> dict:
-    """Nimmt die gelesenen Felder und entscheidet. Hier arbeitet kein Sprachmodell."""
+    """Entscheidet über einen Fall. Hier arbeitet kein Sprachmodell.
+
+    Grundsicherung: Eine Modellantwort in falscher Form, kaputte Stammdaten oder ein unerwarteter
+    Fehler in der Prüfung führen immer zum Menschen und nie zu einer Auszahlung.
+    """
+    fehler = form_fehler(fall, x)
+    if fehler:
+        return an_mensch_wegen("eingabe_ungueltig", fehler)
+    try:
+        return _pruefe(fall, x, gesehene_belegnummern)
+    except Exception as e:  # bewusst breit: lieber ein Mensch zu viel als eine falsche Auszahlung
+        return an_mensch_wegen("pruefung_abgebrochen", f"Die Prüfung ist mit {type(e).__name__} abgebrochen.")
+
+
+def _pruefe(fall: dict, x: dict, gesehene_belegnummern: dict) -> dict:
+    """Nimmt die gelesenen Felder und entscheidet."""
     v = fall["vertrag"]
     text = norm(fall["meldung"] + "\n" + (fall["beleg"] or ""))
     schritte, hart, weich = [], [], []
@@ -116,7 +302,31 @@ def pruefe(fall: dict, x: dict, gesehene_belegnummern: dict) -> dict:
         schritte.append({"name": name, "status": status, "detail": detail, "paragraf": par})
 
     # 1. Stehen die Zitate wirklich in den Unterlagen?
-    fehlend = [k for k, val in x.items() if k.endswith("_beleg") and val and norm(val) not in text]
+    beleg_text = norm(fall["beleg"] or "")
+    fehlend = [k for k, val in x.items() if k.endswith("_beleg") and val
+               and not zitat_vollstaendig(val, beleg_text if k in BELEG_FELDER else text)]
+    # Der gelesene Wert muss in seinem eigenen Zitat stehen. Sonst könnte ein richtiges
+    # Zitat mit einem falschen Wert kombiniert werden.
+    if x.get("seriennummer_beleg_wert") and x.get("seriennummer_beleg") \
+            and kennung(x["seriennummer_beleg_wert"]) not in kennung(x["seriennummer_beleg"]):
+        fehlend.append("seriennummer_beleg_wert")
+    if x.get("belegnummer") and x.get("belegnummer_beleg") \
+            and kennung(x["belegnummer"]) not in kennung(x["belegnummer_beleg"]):
+        fehlend.append("belegnummer")
+    # Der Betrag wird als Zahl aus dem Zitat gelesen und in Cent verglichen, nicht als Zeichenkette.
+    if x.get("gesamtbetrag") is not None and x.get("gesamtbetrag_beleg"):
+        if in_cent(x["gesamtbetrag"]) not in betraege_cent(x["gesamtbetrag_beleg"]):
+            fehlend.append("gesamtbetrag")
+    # Datumswerte müssen zu ihrem Zitat passen.
+    for feld in ("schadentag", "belegdatum"):
+        d = tag(x.get(feld))
+        if d and x.get(feld + "_beleg") and not datum_im_zitat(d, x[feld + "_beleg"]):
+            fehlend.append(feld)
+    # Ein gesetzter Wert ohne Zitat ist unbelegt.
+    for wert, zitat in WERT_BRAUCHT_ZITAT.items():
+        if x.get(wert) not in (None, "", "unklar") and not x.get(zitat):
+            fehlend.append(wert + "_ohne_zitat")
+    fehlend = sorted(set(fehlend))
     if fehlend:
         hart.append("zitat_nicht_gefunden")
         schritt("Belege der gelesenen Felder", "rot", "Zitat nicht in den Unterlagen gefunden: " + ", ".join(fehlend))
@@ -124,11 +334,24 @@ def pruefe(fall: dict, x: dict, gesehene_belegnummern: dict) -> dict:
         schritt("Belege der gelesenen Felder", "gruen", "Jedes Zitat steht wörtlich in den Unterlagen.")
 
     # 2. Anweisung im Dokument
-    if x.get("anweisung_im_dokument"):
+    muster = ANWEISUNG_MUSTER.search(fall["meldung"] + "\n" + (fall["beleg"] or ""))
+    if x.get("anweisung_im_dokument") or x.get("anweisung_beleg"):
         hart.append("anweisung_im_dokument")
         schritt("Versteckte Anweisung", "rot", "Die Unterlagen enthalten eine Anweisung an das System: „" + (x.get("anweisung_beleg") or "") + "“")
+    elif muster:
+        # Das Modell hat nichts gemeldet, die Mustersuche im Code schon: im Zweifel zum Menschen.
+        hart.append("anweisung_im_dokument")
+        schritt("Versteckte Anweisung", "rot", "Das Modell hat keine Anweisung gemeldet, die Mustersuche findet aber: „" + muster.group(0) + "“")
     else:
         schritt("Versteckte Anweisung", "gruen", "Keine Anweisung an System oder Sachbearbeitung gefunden.")
+
+    # 2b. Vertragsdaten: Mit ungültigen Stammdaten wird nichts berechnet.
+    kp = in_cent(v.get("kaufpreis"))
+    kd, vbeg = tag(v.get("kaufdatum")), tag(v.get("vertragsbeginn"))
+    if isinstance(v.get("kaufpreis"), str) or kp is None or kp <= 0 or not kd or not vbeg \
+            or kd > tag(fall["eingang"]) or (tag(x.get("schadentag")) and kd > tag(x.get("schadentag"))):
+        hart.append("vertrag_ungueltig")
+        schritt("Vertragsdaten", "rot", "Kaufpreis, Kaufdatum oder Vertragsbeginn sind nicht plausibel.")
 
     # 3. Schadenart gegen § 2 und § 3
     art = x.get("schadenart") or "unklar"
@@ -151,6 +374,9 @@ def pruefe(fall: dict, x: dict, gesehene_belegnummern: dict) -> dict:
         elif st < vb:
             ausschluss = "§ 3 e"
             schritt("Schadentag", "rot", f"Schaden am {st:%d.%m.%Y}, Vertrag beginnt erst am {vb:%d.%m.%Y}.", "§ 3 e")
+        elif st > tag(fall["eingang"]):
+            weich.append("schadentag_nach_eingang")
+            schritt("Schadentag", "gelb", f"Schaden am {st:%d.%m.%Y} liegt nach dem Eingang der Meldung.")
         else:
             schritt("Schadentag", "gruen", f"Schaden am {st:%d.%m.%Y} liegt in der Vertragslaufzeit (Beginn {vb:%d.%m.%Y}).")
             if (st - vb).days < FRUEHSCHADEN_TAGE:
@@ -171,32 +397,62 @@ def pruefe(fall: dict, x: dict, gesehene_belegnummern: dict) -> dict:
             schritt("Beleg", "gelb", "Keine Rechnung und kein Kostenvoranschlag vorhanden.", "§ 5")
         else:
             sn = (x.get("seriennummer_beleg_wert") or "").replace(" ", "").upper()
-            if sn != v["seriennr"].upper():
+            if kennung(sn) != kennung(v["seriennr"]):
                 weich.append("seriennummer_abweichend")
                 schritt("Seriennummer", "gelb", f"Beleg nennt {sn or 'keine'}, versichert ist {v['seriennr']}.", "§ 1")
             else:
                 schritt("Seriennummer", "gruen", f"{sn} stimmt mit dem Vertrag überein.", "§ 1")
-            summe = round(sum(p.get("betrag") or 0 for p in x.get("positionen") or []), 2)
-            ges = float(x["gesamtbetrag"])
+            # Der Code liest die Seriennummern selbst aus dem Beleg. Nennt der Beleg mehrere
+            # verschiedene Geräte, entscheidet ein Mensch, zu welchem die Reparatur gehört.
+            im_beleg = {kennung(m) for m in SERIEN_RE.findall(fall["beleg"] or "") if re.search(r"\d", m)}
+            if len(im_beleg) > 1:
+                weich.append("mehrere_seriennummern")
+                schritt("Seriennummern im Beleg", "gelb", f"Der Beleg nennt {len(im_beleg)} verschiedene Seriennummern.")
+            if MEHRDEUTIG_RE.search(fall["beleg"] or ""):
+                weich.append("zahl_mehrdeutig")
+                schritt("Zahlen im Beleg", "gelb", "Der Beleg enthält eine Zahl mit Leerzeichen, die sich auf zwei Arten lesen lässt.")
+            positionen = x.get("positionen") or []
+            pos_cent = [in_cent(p.get("betrag")) for p in positionen]
+            ges_cent = in_cent(x["gesamtbetrag"])
+            beleg_cent = zeilenbetraege_cent(fall["beleg"] or "")
+            if ges_cent is None or ges_cent <= 0 or not positionen or any(c is None or c < 0 for c in pos_cent):
+                hart.append("betrag_ungueltig")
+                schritt("Beträge", "rot", "Gesamtbetrag oder Positionen sind keine gültigen, nicht negativen Zahlen.")
+                ges_cent, pos_cent = 0, []
+            elif any(c not in beleg_cent for c in pos_cent):
+                weich.append("position_nicht_im_beleg")
+                schritt("Positionen", "gelb", "Mindestens ein Positionsbetrag steht so nicht im Beleg.")
+            summe = round(sum(pos_cent) / 100, 2)
+            ges = ges_cent / 100
             if abs(summe - ges) > 0.005:
                 weich.append("summe_abweichend")
                 schritt("Rechnung nachgerechnet", "gelb", f"Positionen ergeben {eur(summe)}, der Beleg weist {eur(ges)} aus.")
             else:
                 schritt("Rechnung nachgerechnet", "gruen", f"Positionen ergeben {eur(summe)}, wie ausgewiesen.")
             bd = tag(x.get("belegdatum"))
+            if not bd:
+                weich.append("belegdatum_fehlt")
+                schritt("Belegdatum", "gelb", "Der Beleg trägt kein lesbares Datum.")
+            elif bd > tag(fall["eingang"]):
+                weich.append("belegdatum_nach_eingang")
+                schritt("Belegdatum", "gelb", f"Beleg vom {bd:%d.%m.%Y} liegt nach dem Eingang der Meldung.")
             if bd and st and bd < st:
                 weich.append("beleg_vor_schaden")
                 schritt("Belegdatum", "gelb", f"Beleg vom {bd:%d.%m.%Y} liegt vor dem Schadentag.")
-            nr = norm(x.get("belegnummer"))
-            if nr and nr in gesehene_belegnummern:
+            nr = kennung(x.get("belegnummer"))
+            if not nr:
+                # Ein Beleg ohne lesbare Nummer lässt sich nicht auf Doppeleinreichung prüfen.
+                weich.append("belegnummer_fehlt")
+                schritt("Belegnummer", "gelb", "Beleg ohne lesbare Nummer, Doppeleinreichung nicht prüfbar.")
+            elif nr in gesehene_belegnummern:
                 weich.append("rechnungsnummer_doppelt")
                 schritt("Belegnummer", "gelb", f"Nummer {x['belegnummer']} wurde schon in Fall {gesehene_belegnummern[nr]} eingereicht.")
-            elif nr:
+            else:
                 gesehene_belegnummern[nr] = fall["id"]
                 schritt("Belegnummer", "gruen", f"Nummer {x['belegnummer']} bisher nicht eingereicht.")
-            if st:
+            if st and "vertrag_ungueltig" not in hart and tag(v["kaufdatum"]) <= st:
                 alter = monate(tag(v["kaufdatum"]), st)
-                zw, faktor = zeitwert(v["kaufpreis"], alter)
+                zw, faktor = zeitwert(kp / 100, alter)
                 betrag = round(max(min(ges, zw) - SELBSTBETEILIGUNG, 0), 2)
                 schritt("Leistung berechnet", "gruen",
                         f"Gerät {alter} Monate alt, Zeitwert {faktor} % von {eur(v['kaufpreis'])} = {eur(zw)}. "
@@ -213,6 +469,9 @@ def pruefe(fall: dict, x: dict, gesehene_belegnummern: dict) -> dict:
         ent, gruende, betrag_aus = "an_mensch", weich, None
     elif betrag is not None and betrag > GRENZE_AUTOMATIK:
         ent, gruende, betrag_aus = "an_mensch", ["betrag_ueber_grenze"], betrag
+    elif betrag is None or betrag <= 0:
+        # Ohne berechneten, positiven Betrag wird nie automatisch ausgezahlt.
+        ent, gruende, betrag_aus = "an_mensch", ["kein_auszahlbetrag"], None
     else:
         ent, gruende, betrag_aus = "auszahlen", [], betrag
     return {"entscheidung": ent, "gruende": sorted(gruende), "betrag": betrag_aus,
