@@ -124,7 +124,7 @@ Counter-check: the same measurement with one safeguard switched off at a time.
 | Amount limit | 1 case (F10) | 1 |
 | Warning signs | 7 cases (F07, F08, F11, F12, F13, F14, F15) | 6 (F14 has no receipt and therefore no amount; without an amount nothing is ever paid out) |
 
-Tests: 70 tests, all passing. `tests/test_entscheidung.py` checks decision, reasons, section and amount as well as the six read fields of all 16 cases against `gold`, based on the stored answers and with the model call blocked. `tests/test_haertung.py` falsifies one document or one model answer at a time and expects that the case is not paid out automatically. `tests/test_beispiel.py` checks that `beispiel.py` shows the same result as `ergebnis.json` for every case, calls no model and writes no file. `tests/test_seite.py` reads the source of `report.py` and checks that fields from the case file reach the results page only through escaping.
+Tests: 72 tests, all passing. `tests/test_entscheidung.py` checks decision, reasons, section and amount as well as the six read fields of all 16 cases against `gold`, based on the stored answers and with the model call blocked. `tests/test_haertung.py` falsifies one document or one model answer at a time and expects that the case is not paid out automatically. `tests/test_beispiel.py` checks that `beispiel.py` shows the same result as `ergebnis.json` for every case, calls no model and writes no file. `tests/test_seite.py` reads the source of `report.py` and checks that fields from the case file reach the results page only through escaping.
 
 ### Automatic check on every change
 

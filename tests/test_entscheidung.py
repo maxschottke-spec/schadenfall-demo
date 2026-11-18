@@ -154,6 +154,21 @@ class Gegenprobe(OhneModell):
     def test_unveraendert_keine_abweichung(self):
         self.assertEqual(abweichungen(entscheide_alle()), [])
 
+    def test_gegenprobe_zaehlt_falsche_auszahlungen(self):
+        # Die Kennzahl "falsch ausgezahlt" muss anschlagen, sobald eine Sicherung fehlt, und danach gilt wieder der Normalzustand.
+        gelesen = [gespeichert(f["id"]) for f in FAELLE]
+        proben = pipeline.gegenprobe(FAELLE, gelesen)
+        self.assertEqual([p["name"] for p in proben], ["Betragsgrenze abgeschaltet", "Auffälligkeiten ignoriert"])
+        for probe in proben:
+            with self.subTest(probe=probe["name"]):
+                self.assertTrue(probe["falsch_ausgezahlt"])
+                self.assertLessEqual(set(probe["falsch_ausgezahlt"]), set(probe["falsch"]))
+        self.assertEqual(pipeline.GRENZE_AUTOMATIK, 500.0)
+        self.assertFalse(pipeline.SIGNALE_AUS)
+        for fall, x in zip(FAELLE, gelesen):
+            m = pipeline.messe(fall, x, entscheide_alle()[fall["id"]])
+            self.assertFalse(m["falsch_ausgezahlt"], fall["id"])
+
 
 if __name__ == "__main__":
     unittest.main()

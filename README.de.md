@@ -112,7 +112,7 @@ Gegenprobe: Dieselbe Messung mit je einer abgeschalteten Sicherung.
 | Betragsgrenze | 1 Fall (F10) | 1 |
 | Auffälligkeiten | 7 Fälle (F07, F08, F11, F12, F13, F14, F15) | 6 (F14 hat keinen Beleg und damit keinen Betrag; ohne Betrag wird nie ausgezahlt) |
 
-Tests: 70 Tests, alle bestanden. `tests/test_entscheidung.py` prüft Entscheidung, Gründe, Paragraf und Betrag sowie die sechs gelesenen Felder aller 16 Fälle gegen `gold`, auf Basis der gespeicherten Antworten und mit gesperrtem Modellaufruf. `tests/test_haertung.py` verfälscht je eine Unterlage oder Modellantwort und erwartet, dass der Fall nicht automatisch ausgezahlt wird. `tests/test_beispiel.py` prüft, dass `beispiel.py` für jeden Fall dasselbe Ergebnis zeigt wie `ergebnis.json`, kein Modell aufruft und keine Datei schreibt. `tests/test_seite.py` liest den Quelltext von `report.py` und prüft, dass Felder aus der Fallakte nur über die Maskierung in die Ergebnisseite gelangen.
+Tests: 72 Tests, alle bestanden. `tests/test_entscheidung.py` prüft Entscheidung, Gründe, Paragraf und Betrag sowie die sechs gelesenen Felder aller 16 Fälle gegen `gold`, auf Basis der gespeicherten Antworten und mit gesperrtem Modellaufruf. `tests/test_haertung.py` verfälscht je eine Unterlage oder Modellantwort und erwartet, dass der Fall nicht automatisch ausgezahlt wird. `tests/test_beispiel.py` prüft, dass `beispiel.py` für jeden Fall dasselbe Ergebnis zeigt wie `ergebnis.json`, kein Modell aufruft und keine Datei schreibt. `tests/test_seite.py` liest den Quelltext von `report.py` und prüft, dass Felder aus der Fallakte nur über die Maskierung in die Ergebnisseite gelangen.
 
 ### Automatische Prüfung bei jeder Änderung
 

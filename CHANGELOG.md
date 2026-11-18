@@ -14,7 +14,7 @@ Changes that are not yet on the published branch `main`.
 - `beispiel.py`: plays one case on the console from the stored answers, without a model call and without writing a file; `--en` for English labels, `--liste` for all cases.
 - `.github/workflows/test.yml`: tests, replay and `beispiel.py` on push to `main` and on pull requests, with Python 3.12 and 3.13. A fake `claude` in the search path makes the run fail if a model is called; the run also fails if `ergebnis.json` or the results page differ from the committed files in more than the timestamp.
 - `CONTRIBUTING.md`, `SECURITY.md`, this changelog, and two issue forms ("Path to a wrong decision", "Question or idea").
-- Tests: `tests/test_beispiel.py`, `tests/test_seite.py`, a test for the limit at exactly 500 €, and two tests for the measurement. 70 tests in total (52 on `main`).
+- Tests: `tests/test_beispiel.py`, `tests/test_seite.py`, a test for the limit at exactly 500 €, two tests for the measurement, one for the counter-check and one for an embedded instruction in an excluded claim. 72 tests in total (52 on `main`).
 
 ### Changed
 
