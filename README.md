@@ -63,14 +63,15 @@ Gegenprobe: Dieselbe Messung mit je einer abgeschalteten Sicherung.
 | Betragsgrenze | 1 Fall (F10) | 1 |
 | Auffälligkeiten | 7 Fälle (F07, F08, F11, F12, F13, F14, F15) | 6 (F14 hat keinen Beleg und damit keinen Betrag; ohne Betrag wird nie ausgezahlt) |
 
-Tests: 48 Tests, alle bestanden. `tests/test_entscheidung.py` prüft Entscheidung, Gründe, Paragraf und Betrag sowie die sechs gelesenen Felder aller 16 Fälle gegen `gold`, auf Basis der gespeicherten Antworten und mit gesperrtem Modellaufruf. `tests/test_haertung.py` verfälscht je eine Unterlage oder Modellantwort und erwartet, dass der Fall nicht automatisch ausgezahlt wird.
+Tests: 51 Tests, alle bestanden. `tests/test_entscheidung.py` prüft Entscheidung, Gründe, Paragraf und Betrag sowie die sechs gelesenen Felder aller 16 Fälle gegen `gold`, auf Basis der gespeicherten Antworten und mit gesperrtem Modellaufruf. `tests/test_haertung.py` verfälscht je eine Unterlage oder Modellantwort und erwartet, dass der Fall nicht automatisch ausgezahlt wird.
 
 ## Sicherungen im Code
 
 Der Code vertraut weder der Modellantwort noch den Unterlagen. Diese Prüfungen laufen ohne Modell:
 
 - **Zitate:** Jeder entscheidungsrelevante Wert braucht ein wörtliches Zitat (Groß- und Kleinschreibung sowie Leerraum werden beim Vergleich angeglichen). Zitate zu Belegnummer, Belegdatum, Seriennummer und Gesamtbetrag müssen im Beleg stehen, nicht in der Meldung des Kunden. Ein Zitat darf nicht mitten in einer Zahl beginnen oder enden.
-- **Wert gegen Zitat:** Seriennummer und Belegnummer müssen in ihrem Zitat vorkommen, der Betrag wird aus dem Zitat gelesen und in Cent verglichen, Tag, Monat und ein genanntes Jahr müssen zum gelesenen Datum passen.
+- **Wert gegen Zitat:** Seriennummer und Belegnummer müssen als ganzes Wort in ihrem Zitat stehen, der Betrag wird aus dem Zitat gelesen und in Cent verglichen, Tag, Monat und ein genanntes Jahr müssen zum gelesenen Datum passen.
+- **Eigene Lesung des Codes:** Der Code sucht die Summenzeile und beschriftete Seriennummern selbst im Beleg. Weicht das von der Modellantwort oder vom Vertrag ab, entscheidet ein Mensch.
 - **Beträge:** Positionsbeträge müssen als letzter Betrag einer Belegzeile vorkommen. Negative, nicht endliche oder fehlende Beträge gehen zum Menschen, ebenso Zahlen mit Leerzeichen, die sich auf zwei Arten lesen lassen.
 - **Seriennummern:** Nennt der Beleg mehrere beschriftete Gerätenummern, entscheidet ein Mensch.
 - **Eingebettete Anweisungen:** Zusätzlich zur Meldung des Modells sucht der Code selbst nach Formulierungen, die sich an ein System richten.

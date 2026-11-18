@@ -186,6 +186,25 @@ def zitat_vollstaendig(zitat, text):
     return False
 
 
+SUMMEN_RE = re.compile(r"\b(gesamt\w*|summe|endbetrag|total|zus\.|zusammen|zu zahlen|rechnungsbetrag)", re.I)
+
+
+def als_ganzes_wort(wert, zitat):
+    """Steht die Nummer als ganzes Wort im Zitat? "4471" in "RE-2026-4471" zählt nicht."""
+    return kennung(wert) in {kennung(w) for w in re.findall(r"[0-9A-Za-zÄÖÜäöüß][0-9A-Za-zÄÖÜäöüß\-/]*", zitat or "")}
+
+
+def gesamt_im_beleg(beleg):
+    """Der Code sucht die Summenzeile selbst: letzter Betrag der letzten Zeile mit Summenwort. None, wenn keine da ist."""
+    gefunden = None
+    for zeile in (beleg or "").splitlines():
+        if SUMMEN_RE.search(zeile) and not re.search(r"zwischensumme|netto", zeile, re.I):
+            werte = _betraege(zeile)
+            if werte:
+                gefunden = werte[-1]
+    return gefunden
+
+
 def in_cent(wert):
     """Zahl in Cent oder None, wenn der Wert keine endliche Zahl ist."""
     try:
@@ -308,15 +327,19 @@ def _pruefe(fall: dict, x: dict, gesehene_belegnummern: dict) -> dict:
     # Der gelesene Wert muss in seinem eigenen Zitat stehen. Sonst könnte ein richtiges
     # Zitat mit einem falschen Wert kombiniert werden.
     if x.get("seriennummer_beleg_wert") and x.get("seriennummer_beleg") \
-            and kennung(x["seriennummer_beleg_wert"]) not in kennung(x["seriennummer_beleg"]):
+            and not als_ganzes_wort(x["seriennummer_beleg_wert"], x["seriennummer_beleg"]):
         fehlend.append("seriennummer_beleg_wert")
     if x.get("belegnummer") and x.get("belegnummer_beleg") \
-            and kennung(x["belegnummer"]) not in kennung(x["belegnummer_beleg"]):
+            and not als_ganzes_wort(x["belegnummer"], x["belegnummer_beleg"]):
         fehlend.append("belegnummer")
     # Der Betrag wird als Zahl aus dem Zitat gelesen und in Cent verglichen, nicht als Zeichenkette.
     if x.get("gesamtbetrag") is not None and x.get("gesamtbetrag_beleg"):
         if in_cent(x["gesamtbetrag"]) not in betraege_cent(x["gesamtbetrag_beleg"]):
             fehlend.append("gesamtbetrag")
+        # Findet der Code selbst eine Summenzeile im Beleg, muss der gelesene Betrag genau diese sein.
+        summe_code = gesamt_im_beleg(fall["beleg"])
+        if summe_code is not None and summe_code != in_cent(x["gesamtbetrag"]):
+            fehlend.append("gesamtbetrag_summenzeile")
     # Datumswerte müssen zu ihrem Zitat passen.
     for feld in ("schadentag", "belegdatum"):
         d = tag(x.get(feld))
@@ -408,6 +431,10 @@ def _pruefe(fall: dict, x: dict, gesehene_belegnummern: dict) -> dict:
             if len(im_beleg) > 1:
                 weich.append("mehrere_seriennummern")
                 schritt("Seriennummern im Beleg", "gelb", f"Der Beleg nennt {len(im_beleg)} verschiedene Seriennummern.")
+            elif im_beleg and im_beleg != {kennung(v["seriennr"])} and "seriennummer_abweichend" not in weich:
+                # Der Code liest eine andere Nummer aus dem Beleg als das Modell.
+                weich.append("seriennummer_abweichend")
+                schritt("Seriennummer", "gelb", "Die vom Code im Beleg gefundene Seriennummer passt nicht zum Vertrag.", "§ 1")
             if MEHRDEUTIG_RE.search(fall["beleg"] or ""):
                 weich.append("zahl_mehrdeutig")
                 schritt("Zahlen im Beleg", "gelb", "Der Beleg enthält eine Zahl mit Leerzeichen, die sich auf zwei Arten lesen lässt.")

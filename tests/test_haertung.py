@@ -209,6 +209,30 @@ class Haertung(unittest.TestCase):
         self.x["gesamtbetrag_beleg"] = "brutto   249"
         self.nicht_auszahlen("zitat_nicht_gefunden")
 
+    def test_nummer_nur_als_teil_einer_laengeren(self):
+        # Das Modell liest "4471", im Beleg steht "RE-2026-4471": andere Nummer, Dublettenprüfung wäre ausgehebelt.
+        self.x["belegnummer"] = "4471"
+        self.nicht_auszahlen("zitat_nicht_gefunden")
+        self.setUp()
+        echte = self.fall["vertrag"]["seriennr"]
+        self.fall["beleg"] = self.fall["beleg"].replace(echte, echte + "9")
+        self.x["seriennummer_beleg"] = self.x["seriennummer_beleg"].replace(echte, echte + "9")
+        self.nicht_auszahlen()
+
+    def test_gesamtbetrag_muss_die_summenzeile_sein(self):
+        # Das Modell nimmt eine Position als Gesamtbetrag, Zitat und Wert passen zueinander.
+        self.assertEqual(pipeline.gesamt_im_beleg(self.fall["beleg"]), 24900)
+        self.x["gesamtbetrag"] = 189.0
+        self.x["gesamtbetrag_beleg"] = "189,00 EUR"
+        self.x["positionen"] = [{"text": "Displayeinheit tauschen", "betrag": 189.0}]
+        self.nicht_auszahlen("zitat_nicht_gefunden")
+
+    def test_code_liest_andere_seriennummer_als_das_modell(self):
+        echte = self.fall["vertrag"]["seriennr"]
+        self.fall["beleg"] = self.fall["beleg"].replace(f"Seriennummer {echte}", f"Seriennummer XX00-00000000\nNotiz: {echte}")
+        self.x["seriennummer_beleg"] = f"Notiz: {echte}"
+        self.nicht_auszahlen("seriennummer_abweichend")
+
     def test_zitat_vollstaendig(self):
         z = pipeline.zitat_vollstaendig
         self.assertTrue(z("249,00 EUR", "Gesamtbetrag brutto   249,00 EUR"))
