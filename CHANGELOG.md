@@ -1,10 +1,10 @@
 # Changelog
 
-What changed, for people who use or adapt this repository. There is no release and no version tag yet; the sections below follow the state of the branches.
+What changed, for people who use or adapt this repository. The first release is v0.1.0.
 
-## Unreleased
+## 0.1.0 — 2026-11-18
 
-Changes that are not yet on the published branch `main`.
+First release. Everything below came to `main` on 18 November 2026.
 
 ### Added
 
