@@ -1,0 +1,29 @@
+{
+ "schadentag": "2026-10-29",
+ "schadentag_beleg": "am 29.10. das tablet vom hochbett fallen lassen",
+ "schadenart": "sturz_bruch",
+ "schadenart_beleg": "glas kaputt u. touch geht nich mehr richtig",
+ "beleg_vorhanden": true,
+ "beleg_typ": "rechnung",
+ "belegnummer": "0412",
+ "belegnummer_beleg": "Quittung  Nr 0412",
+ "belegdatum": "2026-11-03",
+ "belegdatum_beleg": "3.11.26",
+ "seriennummer_beleg_wert": "VL08-3CC77120",
+ "seriennummer_beleg": "SN VL08-3CC77120",
+ "positionen": [
+  {
+   "text": "Glas neu",
+   "betrag": 89.0
+  },
+  {
+   "text": "Einbau",
+   "betrag": 30.0
+  }
+ ],
+ "gesamtbetrag": 119.0,
+ "gesamtbetrag_beleg": "zus.   119,-",
+ "anweisung_im_dokument": false,
+ "anweisung_beleg": null,
+ "_modell": "claude-sonnet-5-5"
+}

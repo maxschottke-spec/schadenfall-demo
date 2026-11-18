@@ -1,0 +1,20 @@
+{
+ "schadentag": "2026-10-25",
+ "schadentag_beleg": "am 25.10.2026 vom Tisch gefallen",
+ "schadenart": "sturz_bruch",
+ "schadenart_beleg": "vom Tisch gefallen, das Display ist gesplittert und reagiert nicht mehr",
+ "beleg_vorhanden": false,
+ "beleg_typ": null,
+ "belegnummer": null,
+ "belegnummer_beleg": null,
+ "belegdatum": null,
+ "belegdatum_beleg": null,
+ "seriennummer_beleg_wert": null,
+ "seriennummer_beleg": null,
+ "positionen": [],
+ "gesamtbetrag": null,
+ "gesamtbetrag_beleg": null,
+ "anweisung_im_dokument": false,
+ "anweisung_beleg": null,
+ "_modell": "claude-sonnet-5-5"
+}

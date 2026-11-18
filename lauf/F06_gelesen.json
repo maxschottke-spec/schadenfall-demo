@@ -1,0 +1,29 @@
+{
+ "schadentag": "2026-09-10",
+ "schadentag_beleg": "am 10.09.2026 heruntergefallen",
+ "schadenart": "sturz_bruch",
+ "schadenart_beleg": "heruntergefallen. Das Glas auf der Rückseite ist gebrochen und die Kamera stellt nicht mehr scharf",
+ "beleg_vorhanden": true,
+ "beleg_typ": "rechnung",
+ "belegnummer": "RE-2026-3920",
+ "belegnummer_beleg": "Rechnung Nr. RE-2026-3920",
+ "belegdatum": "2026-09-18",
+ "belegdatum_beleg": "Datum: 18.09.2026",
+ "seriennummer_beleg_wert": "NV12-71C4L556",
+ "seriennummer_beleg": "Seriennummer NV12-71C4L556",
+ "positionen": [
+  {
+   "text": "Rückglas ersetzen",
+   "betrag": 95.0
+  },
+  {
+   "text": "Kameramodul ersetzen",
+   "betrag": 130.0
+  }
+ ],
+ "gesamtbetrag": 225.0,
+ "gesamtbetrag_beleg": "Gesamtbetrag brutto   225,00 EUR",
+ "anweisung_im_dokument": false,
+ "anweisung_beleg": null,
+ "_modell": "claude-sonnet-5-5"
+}

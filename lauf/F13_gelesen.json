@@ -1,0 +1,29 @@
+{
+ "schadentag": "2026-08-02",
+ "schadentag_beleg": "am 02.08.2026 vom Schreibtisch gefallen",
+ "schadenart": "sturz_bruch",
+ "schadenart_beleg": "vom Schreibtisch gefallen, dabei ist ein Scharnier gebrochen",
+ "beleg_vorhanden": true,
+ "beleg_typ": "rechnung",
+ "belegnummer": "RE-2026-4401",
+ "belegnummer_beleg": "Rechnung Nr. RE-2026-4401",
+ "belegdatum": "2026-10-17",
+ "belegdatum_beleg": "Datum: 17.10.2026",
+ "seriennummer_beleg_wert": "LM14-1AB66350",
+ "seriennummer_beleg": "Seriennummer LM14-1AB66350",
+ "positionen": [
+  {
+   "text": "Scharnier ersetzen",
+   "betrag": 140.0
+  },
+  {
+   "text": "Arbeitszeit",
+   "betrag": 60.0
+  }
+ ],
+ "gesamtbetrag": 200.0,
+ "gesamtbetrag_beleg": "Gesamtbetrag brutto   200,00 EUR",
+ "anweisung_im_dokument": false,
+ "anweisung_beleg": null,
+ "_modell": "claude-sonnet-5-5"
+}

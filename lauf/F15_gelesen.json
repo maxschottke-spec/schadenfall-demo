@@ -1,0 +1,29 @@
+{
+ "schadentag": "2026-11-02",
+ "schadentag_beleg": "am 02.11.2026 ist mir das Handy auf dem Parkplatz heruntergefallen",
+ "schadenart": "sturz_bruch",
+ "schadenart_beleg": "das Handy auf dem Parkplatz heruntergefallen, das Display ist gebrochen",
+ "beleg_vorhanden": true,
+ "beleg_typ": "rechnung",
+ "belegnummer": "RE-2026-4471",
+ "belegnummer_beleg": "Rechnung Nr. RE-2026-4471",
+ "belegdatum": "2026-11-05",
+ "belegdatum_beleg": "Datum: 05.11.2026",
+ "seriennummer_beleg_wert": "NV12-64G0R415",
+ "seriennummer_beleg": "Seriennummer NV12-64G0R415",
+ "positionen": [
+  {
+   "text": "Displayeinheit tauschen",
+   "betrag": 189.0
+  },
+  {
+   "text": "Arbeitszeit",
+   "betrag": 60.0
+  }
+ ],
+ "gesamtbetrag": 249.0,
+ "gesamtbetrag_beleg": "Gesamtbetrag brutto   249,00 EUR",
+ "anweisung_im_dokument": false,
+ "anweisung_beleg": null,
+ "_modell": "claude-sonnet-5-5"
+}

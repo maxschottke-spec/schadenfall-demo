@@ -1,0 +1,29 @@
+{
+ "schadentag": "2026-10-12",
+ "schadentag_beleg": "am 12.10.2026",
+ "schadenart": "optisch",
+ "schadenart_beleg": "Jetzt ist dort ein langer Kratzer. Das Gerät funktioniert einwandfrei",
+ "beleg_vorhanden": true,
+ "beleg_typ": "kostenvoranschlag",
+ "belegnummer": "KV-91002",
+ "belegnummer_beleg": "Kostenvoranschlag Nr. KV-91002",
+ "belegdatum": "2026-10-14",
+ "belegdatum_beleg": "Datum: 14.10.2026",
+ "seriennummer_beleg_wert": "LM16-4KD81177",
+ "seriennummer_beleg": "Seriennummer LM16-4KD81177",
+ "positionen": [
+  {
+   "text": "Displaydeckel ersetzen",
+   "betrag": 210.0
+  },
+  {
+   "text": "Arbeitszeit",
+   "betrag": 50.0
+  }
+ ],
+ "gesamtbetrag": 260.0,
+ "gesamtbetrag_beleg": "Gesamtbetrag brutto   260,00 EUR",
+ "anweisung_im_dokument": false,
+ "anweisung_beleg": null,
+ "_modell": "claude-sonnet-5-5"
+}

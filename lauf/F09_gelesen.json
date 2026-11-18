@@ -1,0 +1,29 @@
+{
+ "schadentag": "2026-10-10",
+ "schadentag_beleg": "am 10.10.2026 vom Sofa auf die Fliesen gefallen",
+ "schadenart": "sturz_bruch",
+ "schadenart_beleg": "vom Sofa auf die Fliesen gefallen, das Display ist gesplittert und zeigt Streifen",
+ "beleg_vorhanden": true,
+ "beleg_typ": "rechnung",
+ "belegnummer": "RE-2026-4215",
+ "belegnummer_beleg": "Rechnung Nr. RE-2026-4215",
+ "belegdatum": "2026-10-13",
+ "belegdatum_beleg": "Datum: 13.10.2026",
+ "seriennummer_beleg_wert": "VL08-6HH12093",
+ "seriennummer_beleg": "Seriennummer VL08-6HH12093",
+ "positionen": [
+  {
+   "text": "Displayeinheit tauschen",
+   "betrag": 180.0
+  },
+  {
+   "text": "Arbeitszeit",
+   "betrag": 50.0
+  }
+ ],
+ "gesamtbetrag": 230.0,
+ "gesamtbetrag_beleg": "Gesamtbetrag brutto   230,00 EUR",
+ "anweisung_im_dokument": false,
+ "anweisung_beleg": null,
+ "_modell": "claude-sonnet-5-5"
+}

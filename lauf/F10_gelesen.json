@@ -1,0 +1,29 @@
+{
+ "schadentag": "2026-10-22",
+ "schadentag_beleg": "am 22.10.2026 gab es bei uns ein Gewitter mit kurzem Stromausfall",
+ "schadenart": "ueberspannung",
+ "schadenart_beleg": "Die Werkstatt sagt, es ist ein Überspannungsschaden an der Hauptplatine",
+ "beleg_vorhanden": true,
+ "beleg_typ": "kostenvoranschlag",
+ "belegnummer": "KV-92440",
+ "belegnummer_beleg": "Kostenvoranschlag Nr. KV-92440",
+ "belegdatum": "2026-10-24",
+ "belegdatum_beleg": "Datum: 24.10.2026",
+ "seriennummer_beleg_wert": "LP16-8RR50619",
+ "seriennummer_beleg": "Seriennummer LP16-8RR50619",
+ "positionen": [
+  {
+   "text": "Hauptplatine ersetzen",
+   "betrag": 690.0
+  },
+  {
+   "text": "Arbeitszeit",
+   "betrag": 90.0
+  }
+ ],
+ "gesamtbetrag": 780.0,
+ "gesamtbetrag_beleg": "Gesamtbetrag brutto   780,00 EUR",
+ "anweisung_im_dokument": false,
+ "anweisung_beleg": null,
+ "_modell": "claude-sonnet-5-5"
+}

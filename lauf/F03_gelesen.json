@@ -1,0 +1,25 @@
+{
+ "schadentag": null,
+ "schadentag_beleg": null,
+ "schadenart": "verschleiss",
+ "schadenart_beleg": "seit einigen Wochen hält der Akku meines Handys nur noch knapp zwei Stunden, früher hielt er den ganzen Tag",
+ "beleg_vorhanden": true,
+ "beleg_typ": "kostenvoranschlag",
+ "belegnummer": "KV-90117",
+ "belegnummer_beleg": "Kostenvoranschlag Nr. KV-90117",
+ "belegdatum": "2026-10-20",
+ "belegdatum_beleg": "Datum: 20.10.2026",
+ "seriennummer_beleg_wert": "NV11-22B7M310",
+ "seriennummer_beleg": "Seriennummer NV11-22B7M310",
+ "positionen": [
+  {
+   "text": "Akku tauschen",
+   "betrag": 89.0
+  }
+ ],
+ "gesamtbetrag": 89.0,
+ "gesamtbetrag_beleg": "Gesamtbetrag brutto   89,00 EUR",
+ "anweisung_im_dokument": false,
+ "anweisung_beleg": null,
+ "_modell": "claude-sonnet-5-5"
+}

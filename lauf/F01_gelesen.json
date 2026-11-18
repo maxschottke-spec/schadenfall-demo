@@ -1,0 +1,29 @@
+{
+ "schadentag": "2026-10-28",
+ "schadentag_beleg": "am 28.10.2026 mein Handy auf dem Bahnsteig aus der Hand gerutscht",
+ "schadenart": "sturz_bruch",
+ "schadenart_beleg": "auf den Steinboden gefallen. Das Display ist gesprungen und reagiert im unteren Bereich nicht mehr auf Berührung",
+ "beleg_vorhanden": true,
+ "beleg_typ": "rechnung",
+ "belegnummer": "RE-2026-4471",
+ "belegnummer_beleg": "Rechnung Nr. RE-2026-4471",
+ "belegdatum": "2026-11-03",
+ "belegdatum_beleg": "Datum: 03.11.2026",
+ "seriennummer_beleg_wert": "NV12-58A3K901",
+ "seriennummer_beleg": "Seriennummer NV12-58A3K901",
+ "positionen": [
+  {
+   "text": "Displayeinheit tauschen",
+   "betrag": 189.0
+  },
+  {
+   "text": "Arbeitszeit",
+   "betrag": 60.0
+  }
+ ],
+ "gesamtbetrag": 249.0,
+ "gesamtbetrag_beleg": "Gesamtbetrag brutto   249,00 EUR",
+ "anweisung_im_dokument": false,
+ "anweisung_beleg": null,
+ "_modell": "claude-sonnet-5-5"
+}

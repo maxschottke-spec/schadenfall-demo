@@ -1,0 +1,33 @@
+{
+ "schadentag": "2026-10-05",
+ "schadentag_beleg": "am 05.10.2026 habe ich abends ein Glas Wasser über die Tastatur meines Notebooks gekippt",
+ "schadenart": "fluessigkeit",
+ "schadenart_beleg": "ein Glas Wasser über die Tastatur meines Notebooks gekippt",
+ "beleg_vorhanden": true,
+ "beleg_typ": "kostenvoranschlag",
+ "belegnummer": "KV-88213",
+ "belegnummer_beleg": "Kostenvoranschlag Nr. KV-88213",
+ "belegdatum": "2026-10-08",
+ "belegdatum_beleg": "Datum: 08.10.2026",
+ "seriennummer_beleg_wert": "LM14-7QX20044",
+ "seriennummer_beleg": "Seriennummer LM14-7QX20044",
+ "positionen": [
+  {
+   "text": "Tastatureinheit ersetzen",
+   "betrag": 240.0
+  },
+  {
+   "text": "Reinigung Hauptplatine",
+   "betrag": 110.0
+  },
+  {
+   "text": "Arbeitszeit",
+   "betrag": 70.0
+  }
+ ],
+ "gesamtbetrag": 420.0,
+ "gesamtbetrag_beleg": "Gesamtbetrag brutto   420,00 EUR",
+ "anweisung_im_dokument": false,
+ "anweisung_beleg": null,
+ "_modell": "claude-sonnet-5-5"
+}

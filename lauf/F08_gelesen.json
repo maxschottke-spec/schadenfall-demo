@@ -1,0 +1,29 @@
+{
+ "schadentag": "2026-10-08",
+ "schadentag_beleg": "am 08.10.2026 ist mir Kaffee über mein Tablet gelaufen",
+ "schadenart": "fluessigkeit",
+ "schadenart_beleg": "Kaffee über mein Tablet gelaufen",
+ "beleg_vorhanden": true,
+ "beleg_typ": "rechnung",
+ "belegnummer": "RE-2026-4188",
+ "belegnummer_beleg": "Rechnung Nr. RE-2026-4188",
+ "belegdatum": "2026-10-10",
+ "belegdatum_beleg": "Datum: 10.10.2026",
+ "seriennummer_beleg_wert": "VL10-2MM47810",
+ "seriennummer_beleg": "Seriennummer VL10-2MM47810",
+ "positionen": [
+  {
+   "text": "Ladebuchse ersetzen",
+   "betrag": 120.0
+  },
+  {
+   "text": "Arbeitszeit",
+   "betrag": 45.0
+  }
+ ],
+ "gesamtbetrag": 265.0,
+ "gesamtbetrag_beleg": "Gesamtbetrag brutto   265,00 EUR",
+ "anweisung_im_dokument": false,
+ "anweisung_beleg": null,
+ "_modell": "claude-sonnet-5-5"
+}

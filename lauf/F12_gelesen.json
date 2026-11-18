@@ -1,0 +1,29 @@
+{
+ "schadentag": "2026-10-06",
+ "schadentag_beleg": "am 06.10.2026 ist mir das Handy in der Küche vom Tresen gefallen",
+ "schadenart": "sturz_bruch",
+ "schadenart_beleg": "das Handy in der Küche vom Tresen gefallen, Display kaputt",
+ "beleg_vorhanden": true,
+ "beleg_typ": "rechnung",
+ "belegnummer": "RE-2026-4120",
+ "belegnummer_beleg": "Rechnung Nr. RE-2026-4120",
+ "belegdatum": "2026-10-08",
+ "belegdatum_beleg": "Datum: 08.10.2026",
+ "seriennummer_beleg_wert": "NV12-05K9W731",
+ "seriennummer_beleg": "Seriennummer NV12-05K9W731",
+ "positionen": [
+  {
+   "text": "Displayeinheit tauschen",
+   "betrag": 189.0
+  },
+  {
+   "text": "Arbeitszeit",
+   "betrag": 60.0
+  }
+ ],
+ "gesamtbetrag": 249.0,
+ "gesamtbetrag_beleg": "Gesamtbetrag brutto   249,00 EUR",
+ "anweisung_im_dokument": false,
+ "anweisung_beleg": null,
+ "_modell": "claude-sonnet-5-5"
+}
