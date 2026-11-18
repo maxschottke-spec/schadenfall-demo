@@ -31,7 +31,30 @@ Die Modellantworten eines Laufs vom 16.11.2026 liegen in `lauf/` (16 gelesene Fo
 
 Voraussetzung: Python 3.12 oder neuer, nur Standardbibliothek. Geprüft mit Python 3.14.5.
 
-Ein neuer Modell-Lauf ist für das Ansehen nicht nötig. `python3 pipeline.py --neu` fragt das Modell für alle Fälle neu und überschreibt die Dateien in `lauf/`. Der Aufruf geht über das Kommandozeilenprogramm `claude` und dessen eigene Anmeldung; im Code steht kein Schlüssel. Fehlt eine Datei in `lauf/`, ruft auch der Aufruf ohne `--neu` für diesen Fall das Modell auf.
+Ein neuer Modell-Lauf ist für das Ansehen nicht nötig. `python3 pipeline.py --neu` fragt das Modell für alle Fälle neu und überschreibt die Dateien in `lauf/`. Der Aufruf geht über das Kommandozeilenprogramm `claude` und dessen eigene Anmeldung; im Code steht kein Schlüssel. Fehlt eine Datei in `lauf/`, bricht der Aufruf ohne `--neu` mit einem Hinweis ab und ruft kein Modell auf. Mit `--modell-erlaubt` fragt er das Modell nur für die fehlenden Dateien.
+
+### Eigener Fall ohne Modellaufruf
+
+1. Den Fall in `faelle.json` anhängen, mit Vertragsdaten, `meldung`, `beleg` und dem Soll unter `gold` (Pflicht).
+2. `lauf/Fxx_gelesen.json` von Hand anlegen. Am einfachsten `lauf/F01_gelesen.json` kopieren und anpassen; die Felder stehen unten.
+3. Lautet die Entscheidung `auszahlen` oder `ablehnen`, zusätzlich `lauf/Fxx_brief.txt` mit dem Text des Schreibens anlegen.
+4. `python3 pipeline.py && python3 report.py`
+
+### Formular der Modellantwort
+
+| Feld | Inhalt |
+| --- | --- |
+| `schadentag`, `schadentag_beleg` | Datum als `JJJJ-MM-TT` und das wörtliche Zitat dazu |
+| `schadenart`, `schadenart_beleg` | einer von `sturz_bruch`, `fluessigkeit`, `bedienfehler`, `ueberspannung`, `verschleiss`, `optisch`, `diebstahl_verlust`, `vorsatz`, `unklar`, mit Zitat |
+| `beleg_vorhanden`, `beleg_typ` | `true`/`false`; `rechnung`, `kostenvoranschlag` oder `null` |
+| `belegnummer`, `belegnummer_beleg` | Nummer und Zitat |
+| `belegdatum`, `belegdatum_beleg` | Datum als `JJJJ-MM-TT` und Zitat |
+| `seriennummer_beleg_wert`, `seriennummer_beleg` | Seriennummer aus dem Beleg und Zitat |
+| `positionen` | Liste aus `{"text": …, "betrag": …}` |
+| `gesamtbetrag`, `gesamtbetrag_beleg` | Zahl mit Punkt, ohne Währung, und Zitat |
+| `anweisung_im_dokument`, `anweisung_beleg` | `true`/`false` und das Zitat der Anweisung oder `null` |
+
+Jeder gesetzte Wert braucht sein Zitat im Feld mit der Endung `_beleg`. Das Feld `_modell` ist optional.
 
 ## Fälle und Sollwerte
 
@@ -63,7 +86,24 @@ Gegenprobe: Dieselbe Messung mit je einer abgeschalteten Sicherung.
 | Betragsgrenze | 1 Fall (F10) | 1 |
 | Auffälligkeiten | 7 Fälle (F07, F08, F11, F12, F13, F14, F15) | 6 (F14 hat keinen Beleg und damit keinen Betrag; ohne Betrag wird nie ausgezahlt) |
 
-Tests: 51 Tests, alle bestanden. `tests/test_entscheidung.py` prüft Entscheidung, Gründe, Paragraf und Betrag sowie die sechs gelesenen Felder aller 16 Fälle gegen `gold`, auf Basis der gespeicherten Antworten und mit gesperrtem Modellaufruf. `tests/test_haertung.py` verfälscht je eine Unterlage oder Modellantwort und erwartet, dass der Fall nicht automatisch ausgezahlt wird.
+Tests: 52 Tests, alle bestanden. `tests/test_entscheidung.py` prüft Entscheidung, Gründe, Paragraf und Betrag sowie die sechs gelesenen Felder aller 16 Fälle gegen `gold`, auf Basis der gespeicherten Antworten und mit gesperrtem Modellaufruf. `tests/test_haertung.py` verfälscht je eine Unterlage oder Modellantwort und erwartet, dass der Fall nicht automatisch ausgezahlt wird.
+
+## Gründe für die Übergabe an einen Menschen
+
+| Kürzel | Bedeutung |
+| --- | --- |
+| `zitat_nicht_gefunden` | Ein Zitat steht nicht in den Unterlagen, oder ein Wert passt nicht zu seinem Zitat |
+| `anweisung_im_dokument` | Die Unterlagen enthalten eine Anweisung an das System |
+| `seriennummer_abweichend`, `mehrere_seriennummern` | Seriennummer passt nicht zum Vertrag, oder der Beleg nennt mehrere |
+| `summe_abweichend`, `position_nicht_im_beleg` | Positionen ergeben nicht die Summe, oder eine Position steht so nicht im Beleg |
+| `betrag_ungueltig`, `zahl_mehrdeutig`, `kein_auszahlbetrag` | Betrag ist keine gültige Zahl, lässt sich zweifach lesen, oder es bleibt nichts auszuzahlen |
+| `betrag_ueber_grenze` | Betrag über der Grenze für die Automatik (500 €) |
+| `beleg_fehlt`, `belegnummer_fehlt`, `belegdatum_fehlt` | Beleg, Nummer oder Datum fehlen |
+| `rechnungsnummer_doppelt` | Belegnummer wurde im selben Lauf schon eingereicht |
+| `beleg_vor_schaden`, `belegdatum_nach_eingang`, `schadentag_nach_eingang`, `schadentag_fehlt` | Datumsangaben passen nicht zueinander oder fehlen |
+| `schaden_kurz_nach_vertragsbeginn`, `meldung_verspaetet` | Auffälligkeiten nach den Bedingungen |
+| `schadenart_unklar` | Schadenart lässt sich nicht sicher zuordnen |
+| `vertrag_ungueltig`, `eingabe_ungueltig`, `pruefung_abgebrochen` | Stammdaten unplausibel, Modellantwort in falscher Form, oder Fehler in der Prüfung |
 
 ## Sicherungen im Code
 

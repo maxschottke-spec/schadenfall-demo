@@ -60,7 +60,8 @@ class OhneModell(unittest.TestCase):
 
 class Datenstand(OhneModell):
     def test_sechzehn_faelle_mit_soll(self):
-        self.assertEqual(len(FAELLE), 16)
+        # Mindestens der ausgelieferte Testsatz; eigene Fälle dürfen dazukommen.
+        self.assertGreaterEqual(len(FAELLE), 16)
         for fall in FAELLE:
             self.assertIn("gold", fall, fall["id"])
 

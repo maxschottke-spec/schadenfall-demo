@@ -233,6 +233,19 @@ class Haertung(unittest.TestCase):
         self.x["seriennummer_beleg"] = f"Notiz: {echte}"
         self.nicht_auszahlen("seriennummer_abweichend")
 
+    def test_fehlende_datei_ruft_kein_modell_auf(self):
+        import os
+        from unittest import mock
+        fehlt = pipeline.ROH / "F99_gelesen.json"
+        self.assertFalse(fehlt.exists())
+        fall = dict(self.fall, id="F99")
+        with mock.patch.object(pipeline.subprocess, "run") as start, mock.patch.object(pipeline.sys, "argv", ["pipeline.py"]):
+            with self.assertRaises(SystemExit) as abbruch:
+                pipeline.lies(fall, False)
+        start.assert_not_called()
+        self.assertIn("fehlt in lauf/", str(abbruch.exception))
+        self.assertFalse(fehlt.exists())
+
     def test_zitat_vollstaendig(self):
         z = pipeline.zitat_vollstaendig
         self.assertTrue(z("249,00 EUR", "Gesamtbetrag brutto   249,00 EUR"))

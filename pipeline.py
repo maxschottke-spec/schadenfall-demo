@@ -507,16 +507,25 @@ def _pruefe(fall: dict, x: dict, gesehene_belegnummern: dict) -> dict:
 
 # ---------------------------------------------------------------- Ablauf
 
+def modell_erlaubt(datei):
+    """Ohne ausdrückliche Erlaubnis wird nie ein Modell aufgerufen, nur weil eine Datei in lauf/ fehlt."""
+    if "--neu" in sys.argv or "--modell-erlaubt" in sys.argv:
+        return
+    sys.exit(f"{datei.name} fehlt in lauf/. Ohne Modell: Datei von Hand anlegen (README, Abschnitt "
+             "„Eigener Fall ohne Modellaufruf“). Mit Modell: --neu (alle Fälle) oder --modell-erlaubt (nur fehlende).")
+
+
 def lies(fall: dict, neu: bool) -> dict:
     datei = ROH / f"{fall['id']}_gelesen.json"
     if datei.exists() and not neu:
-        return json.loads(datei.read_text())
+        return json.loads(datei.read_text(encoding="utf-8"))
+    modell_erlaubt(datei)
     prompt = LESE_PROMPT.format(arten=", ".join(ARTEN), eingang=fall["eingang"], meldung=fall["meldung"],
                                 beleg=fall["beleg"] or "(kein Beleg eingereicht)")
     antwort, name = modell(prompt)
     x = json_aus(antwort)
     x["_modell"] = name
-    datei.write_text(json.dumps(x, ensure_ascii=False, indent=1))
+    datei.write_text(json.dumps(x, ensure_ascii=False, indent=1), encoding="utf-8")
     return x
 
 
@@ -525,7 +534,8 @@ def brief(fall: dict, erg: dict, neu: bool) -> str | None:
         return None
     datei = ROH / f"{fall['id']}_brief.txt"
     if datei.exists() and not neu:
-        return datei.read_text()
+        return datei.read_text(encoding="utf-8")
+    modell_erlaubt(datei)
     v = fall["vertrag"]
     if erg["entscheidung"] == "auszahlen":
         rechnung = next(s["detail"] for s in erg["schritte"] if s["name"] == "Leistung berechnet")
@@ -537,7 +547,7 @@ def brief(fall: dict, erg: dict, neu: bool) -> str | None:
                   f"- Grund: {grund}\n- Grundlage: {erg['paragraf']} der Versicherungsbedingungen\n"
                   f"- Bei Rückfragen oder neuen Unterlagen kann sich der Kunde jederzeit melden.")
     text, _ = modell(BRIEF_PROMPT.format(fakten=fakten))
-    datei.write_text(text.strip())
+    datei.write_text(text.strip(), encoding="utf-8")
     return text.strip()
 
 
@@ -585,7 +595,10 @@ def gegenprobe(faelle, gelesen) -> list:
 
 def main():
     neu = "--neu" in sys.argv
-    faelle = json.loads((HIER / "faelle.json").read_text())
+    faelle = json.loads((HIER / "faelle.json").read_text(encoding="utf-8"))
+    for f in faelle:
+        if "gold" not in f:
+            sys.exit(f"Fall {f.get('id')}: Das Soll unter 'gold' fehlt (README, Abschnitt „Fälle und Sollwerte“).")
     with ThreadPoolExecutor(4) as ex:
         gelesen = list(ex.map(lambda f: lies(f, neu), faelle))
     gesehen, ergebnisse = {}, {}
@@ -610,7 +623,7 @@ def main():
         "modell": gelesen[0].get("_modell"), "grenze": GRENZE_AUTOMATIK,
         "lauf": datetime.datetime.now().strftime("%d.%m.%Y %H:%M"),
     }
-    (HIER / "ergebnis.json").write_text(json.dumps({"zusammenfassung": zusammen, "gegenprobe": gegenprobe(faelle, gelesen), "faelle": aus}, ensure_ascii=False, indent=1))
+    (HIER / "ergebnis.json").write_text(json.dumps({"zusammenfassung": zusammen, "gegenprobe": gegenprobe(faelle, gelesen), "faelle": aus}, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps(zusammen, ensure_ascii=False, indent=1))
     print("Gegenprobe:", json.dumps(gegenprobe(faelle, gelesen), ensure_ascii=False))
     for a in aus:
