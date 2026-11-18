@@ -511,8 +511,9 @@ def modell_erlaubt(datei):
     """Ohne ausdrückliche Erlaubnis wird nie ein Modell aufgerufen, nur weil eine Datei in lauf/ fehlt."""
     if "--neu" in sys.argv or "--modell-erlaubt" in sys.argv:
         return
-    sys.exit(f"{datei.name} fehlt in lauf/. Ohne Modell: Datei von Hand anlegen (README, Abschnitt "
-             "„Eigener Fall ohne Modellaufruf“). Mit Modell: --neu (alle Fälle) oder --modell-erlaubt (nur fehlende).")
+    sys.exit(f"{datei.name} fehlt in lauf/. Ohne Modell: Datei von Hand anlegen (README.de.md, Abschnitt "
+             "„Eigener Fall ohne Modellaufruf“; README.md, section \"Your own case without a model call\"). "
+             "Mit Modell: --neu (alle Fälle) oder --modell-erlaubt (nur fehlende).")
 
 
 def lies(fall: dict, neu: bool) -> dict:
@@ -598,7 +599,7 @@ def main():
     faelle = json.loads((HIER / "faelle.json").read_text(encoding="utf-8"))
     for f in faelle:
         if "gold" not in f:
-            sys.exit(f"Fall {f.get('id')}: Das Soll unter 'gold' fehlt (README, Abschnitt „Fälle und Sollwerte“).")
+            sys.exit(f"Fall {f.get('id')}: Das Soll unter 'gold' fehlt (README.de.md, Abschnitt „Fälle und Sollwerte“; README.md, section \"Cases and expected values\").")
     with ThreadPoolExecutor(4) as ex:
         gelesen = list(ex.map(lambda f: lies(f, neu), faelle))
     gesehen, ergebnisse = {}, {}
